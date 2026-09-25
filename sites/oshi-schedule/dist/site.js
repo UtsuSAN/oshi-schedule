@@ -106,14 +106,74 @@
     return from || to;
   }
 
+  function ticketRelease(event) {
+    const rawDate = String(event?.ticket_release_date ?? "");
+    const match = rawDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!match) return null;
+    const year = Number(match[1]);
+    const month = Number(match[2]);
+    const day = Number(match[3]);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+
+    const rawTime = String(event?.ticket_release_time ?? "");
+    const timeMatch = rawTime.match(/^(\d{1,2}):(\d{2})(?::\d{2})?$/);
+    const hour = timeMatch ? Number(timeMatch[1]) : -1;
+    const minute = timeMatch ? Number(timeMatch[2]) : -1;
+    const time = timeMatch && hour >= 0 && hour <= 23 && minute >= 0 && minute <= 59
+      ? `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}` : "";
+    return { year, month, day, time, label: `${year}/${String(month).padStart(2, "0")}/${String(day).padStart(2, "0")}${time ? ` ${time}` : ""}` };
+  }
+
+  function calendarDate(date) {
+    return `${date.getUTCFullYear()}${String(date.getUTCMonth() + 1).padStart(2, "0")}${String(date.getUTCDate()).padStart(2, "0")}`;
+  }
+
+  function ticketCalendarUrl(event, release) {
+    if (!release) return "";
+    const start = new Date(Date.UTC(release.year, release.month - 1, release.day));
+    const params = new URLSearchParams({
+      action: "TEMPLATE",
+      text: `チケット発売：${event.title || "イベント"}`,
+      ctz: JST
+    });
+    if (release.time) {
+      const [hour, minute] = release.time.split(":").map(Number);
+      start.setUTCHours(hour, minute, 0, 0);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const dateTime = (value) => `${calendarDate(value)}T${String(value.getUTCHours()).padStart(2, "0")}${String(value.getUTCMinutes()).padStart(2, "0")}00`;
+      params.set("dates", `${dateTime(start)}/${dateTime(end)}`);
+    } else {
+      const end = new Date(start);
+      end.setUTCDate(end.getUTCDate() + 1);
+      params.set("dates", `${calendarDate(start)}/${calendarDate(end)}`);
+    }
+    if (event.ticket_url) {
+      const ticketUrl = safeUrl(event.ticket_url);
+      if (ticketUrl) params.set("details", `チケット情報: ${ticketUrl}`);
+    }
+    return `https://calendar.google.com/calendar/render?${params.toString()}`;
+  }
+
+  function ticketReleaseHtml(event, { calendarLink = false } = {}) {
+    const release = ticketRelease(event);
+    if (!release) return "";
+    const action = calendarLink && event.status !== "cancelled"
+      ? `<a class="source-link ticket-calendar-link" href="${escapeHtml(ticketCalendarUrl(event, release))}" target="_blank" rel="noopener noreferrer">発売予定をGoogle Calendarに追加</a>`
+      : "";
+    return `<div class="ticket-release"><span class="ticket-release-label">チケット発売</span><span class="ticket-release-value">${escapeHtml(release.label)}</span>${action}</div>`;
+  }
+
   function eventTime(event) {
     return event.start_at || event.open_at || "";
   }
 
   function compareEvents(a, b) {
-    const dateCompare = String(a.event_date ?? "").localeCompare(String(b.event_date ?? ""));
+    const dateCompare = String(a.scheduleDate ?? "").localeCompare(String(b.scheduleDate ?? ""));
     if (dateCompare) return dateCompare;
-    return String(eventTime(a)).localeCompare(String(eventTime(b)));
+    const firstTime = a.kind === "ticket" ? ticketRelease(a.event)?.time || "" : eventTime(a.event);
+    const secondTime = b.kind === "ticket" ? ticketRelease(b.event)?.time || "" : eventTime(b.event);
+    return String(firstTime).localeCompare(String(secondTime));
   }
 
   function updateArtistOptions(artists) {
@@ -180,6 +240,7 @@
     const status = event.status ? `<span class="status-pill">${escapeHtml(event.status)}</span>` : "";
     const links = eventLinks(event);
     const details = [
+      ticketReleaseHtml(event, { calendarLink: true }),
       `<div class="appearance-list">${appearances.length ? appearances.map(appearanceHtml).join("") : '<div class="detail-fact-value">出演情報は未登録です。</div>'}</div>`,
       `<div class="detail-facts">${address}${updated}</div>`,
       links.length ? `<div class="link-list">${links.join("")}</div>` : ""
@@ -198,6 +259,7 @@
           <span class="event-meta-item"><span class="meta-icon" aria-hidden="true">◷</span>${escapeHtml(time)}</span>
           <span class="event-meta-item"><span class="meta-icon" aria-hidden="true">⌖</span>${escapeHtml(venue)}</span>
         </div>
+        ${ticketReleaseHtml(event)}
         ${artists.length ? `<div class="artist-list">${[...new Set(artists)].map((name) => `<span class="artist-chip">${escapeHtml(name)}</span>`).join("")}</div>` : ""}
         <details class="event-details">
           <summary>出演・会場・公式リンクを見る</summary>
@@ -205,6 +267,14 @@
         </details>
       </div>
     </article>`;
+  }
+
+  function ticketCardHtml(event) {
+    const release = ticketRelease(event);
+    if (!release) return "";
+    const releaseDate = `${release.year}-${String(release.month).padStart(2, "0")}-${String(release.day).padStart(2, "0")}`;
+    const date = formatDay(releaseDate);
+    return `<article class="event-card ticket-card"><div class="date-tile"><span class="date-tile-month">${escapeHtml(date.month)}</span><span class="date-tile-day">${escapeHtml(date.day)}</span><span class="date-tile-weekday">${escapeHtml(date.weekday)}</span></div><div class="event-main"><div class="event-topline"><h3 class="event-title">チケット発売｜${escapeHtml(event.title || "イベント")}</h3></div>${ticketReleaseHtml(event, { calendarLink: true })}</div></article>`;
   }
 
   function renderEmpty(title, message, icon = "＋") {
@@ -216,13 +286,18 @@
     if (!snapshot) return;
     const today = jstDateKey();
     const events = (Array.isArray(snapshot.events) ? snapshot.events : [])
-      .filter((event) => event && inSelectedRange(event.event_date, today) && eventMatchesArtist(event))
+      .filter((event) => event && eventMatchesArtist(event))
+      .flatMap((event) => [
+        { event, kind: "event", scheduleDate: event.event_date },
+        ...(event.status !== "cancelled" && ticketRelease(event) ? [{ event, kind: "ticket", scheduleDate: String(event.ticket_release_date) }] : [])
+      ])
+      .filter((item) => inSelectedRange(item.scheduleDate, today))
       .sort(compareEvents);
     rangeLabel.textContent = rangeNames[state.range].label;
     sectionTitle.textContent = rangeNames[state.range].title;
     countNode.innerHTML = `<strong>${events.length}</strong> 件`;
     if (events.length) {
-      list.innerHTML = events.map(eventCardHtml).join("");
+      list.innerHTML = events.map((item) => item.kind === "ticket" ? ticketCardHtml(item.event) : eventCardHtml(item.event)).join("");
     } else if (!Array.isArray(snapshot.events) || snapshot.events.length === 0) {
       renderEmpty("公開データはまだありません", "ローカルアプリで公開用Snapshotを作成し、サイトへ反映すると予定が表示されます。", "＋");
     } else {

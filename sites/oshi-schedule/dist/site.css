@@ -177,6 +177,10 @@ h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
 .meta-icon { width: 16px; color: var(--mint); text-align: center; }
 .artist-list { display: flex; flex-wrap: wrap; gap: 7px; margin: 14px 0 15px; }
 .artist-chip { display: inline-flex; align-items: center; min-height: 28px; padding: 3px 10px; border: 1px solid rgba(93, 224, 193, .2); border-radius: 99px; color: #c7f4e8; background: rgba(93, 224, 193, .07); font-size: 12px; }
+.ticket-release { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; margin-top: 11px; padding: 10px 12px; border: 1px solid rgba(244, 197, 110, .22); border-radius: 11px; background: rgba(244, 197, 110, .055); }
+.ticket-release-label { color: var(--muted); font-size: 12px; }
+.ticket-release-value { color: var(--amber); font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.ticket-calendar-link { min-height: 34px; margin-left: auto; }
 .event-details { border-top: 1px solid rgba(161, 173, 189, .13); }
 .event-details summary { display: inline-flex; align-items: center; gap: 8px; min-height: 42px; color: var(--text); cursor: pointer; font-size: 13px; font-weight: 600; list-style: none; }
 .event-details summary::-webkit-details-marker { display: none; }
@@ -249,6 +253,8 @@ h2 { margin: 0; font-size: 22px; letter-spacing: -.04em; }
   .event-title { font-size: 16px; }
   .status-pill { font-size: 11px; }
   .event-meta { gap: 7px 12px; font-size: 13px; }
+  .ticket-release { align-items: flex-start; }
+  .ticket-calendar-link { margin-left: 0; }
   .artist-filter { align-items: flex-start; flex-direction: column; gap: 7px; }
   .artist-filter select { width: 100%; max-width: none; }
   .result-count { align-self: flex-end; margin-top: -40px; }

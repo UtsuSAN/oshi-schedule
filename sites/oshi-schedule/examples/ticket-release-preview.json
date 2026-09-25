@@ -1,0 +1,78 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-26T09:00:00+09:00",
+  "timezone": "Asia/Tokyo",
+  "artists": [
+    {
+      "id": 901,
+      "display_name": "星彩リボン",
+      "official_url": "https://seisai.example.invalid/",
+      "x_username": null
+    }
+  ],
+  "events": [
+    {
+      "id": 9011,
+      "title": "星彩リボン 秋のワンマンライブ（架空）",
+      "event_date": "2026-10-17",
+      "open_at": "17:00",
+      "start_at": "17:30",
+      "end_at": "19:30",
+      "venue_name": "架空の青空ホール",
+      "venue_address": "静岡県架空市1-2",
+      "ticket_release_date": "2026-10-01",
+      "ticket_release_time": "10:00",
+      "ticket_url": "https://tickets.example.invalid/seisai-autumn",
+      "official_url": "https://events.example.invalid/seisai-autumn",
+      "status": "scheduled",
+      "updated_at": "2026-09-26T08:30:00+09:00",
+      "appearances": [
+        {
+          "artist_id": 901,
+          "artist_name": "星彩リボン",
+          "appearance_start_at": "18:00",
+          "appearance_end_at": "18:40",
+          "benefit_start_at": "19:40",
+          "benefit_end_at": "20:30",
+          "stage_name": "メインステージ",
+          "notes": null
+        }
+      ],
+      "sources": [
+        {
+          "source_type": "official_site",
+          "source_url": "https://events.example.invalid/seisai-autumn"
+        }
+      ]
+    },
+    {
+      "id": 9012,
+      "title": "星彩リボン ミニライブ（架空）",
+      "event_date": "2026-10-24",
+      "open_at": null,
+      "start_at": "13:00",
+      "end_at": "14:00",
+      "venue_name": "架空の星空プラザ",
+      "venue_address": null,
+      "ticket_release_date": "2026-10-05",
+      "ticket_release_time": null,
+      "ticket_url": null,
+      "official_url": "https://events.example.invalid/seisai-mini",
+      "status": "scheduled",
+      "updated_at": "2026-09-26T08:30:00+09:00",
+      "appearances": [
+        {
+          "artist_id": 901,
+          "artist_name": "星彩リボン",
+          "appearance_start_at": "13:20",
+          "appearance_end_at": "13:40",
+          "benefit_start_at": null,
+          "benefit_end_at": null,
+          "stage_name": null,
+          "notes": null
+        }
+      ],
+      "sources": []
+    }
+  ]
+}
