@@ -8,7 +8,7 @@ from pathlib import Path
 from urllib.parse import parse_qsl, urlsplit
 from zoneinfo import ZoneInfo
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session, joinedload, selectinload
 
 from app.models import Appearance, Artist, Event
@@ -76,8 +76,10 @@ class PublicExportService:
         events = list(self.session.scalars(
             select(Event)
             .where(
-                Event.event_date >= start_date,
-                Event.event_date <= end_date,
+                or_(
+                    Event.event_date.between(start_date, end_date),
+                    Event.ticket_release_date.between(start_date, end_date),
+                ),
                 Event.status.in_(PUBLIC_STATUSES),
             )
             .options(
@@ -117,6 +119,8 @@ class PublicExportService:
                 venue_name=event.venue_name,
                 venue_address=event.venue_address,
                 ticket_url=_public_web_url(event.ticket_url),
+                ticket_release_date=event.ticket_release_date,
+                ticket_release_time=event.ticket_release_time,
                 official_url=_public_web_url(event.official_url),
                 status=event.status,
                 updated_at=as_japan_datetime(event.updated_at),

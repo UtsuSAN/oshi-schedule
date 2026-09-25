@@ -44,8 +44,9 @@ def _url(values: Mapping[str, str], key: str, errors: dict[str, str], label: str
     return value
 
 
-def _date(values: Mapping[str, str], key: str, errors: dict[str, str], label: str) -> date | None:
-    value = _text(values, key, errors, label, required=True)
+def _date(values: Mapping[str, str], key: str, errors: dict[str, str], label: str,
+          *, required: bool = True) -> date | None:
+    value = _text(values, key, errors, label, required=required)
     if not value:
         return None
     try:
@@ -119,6 +120,8 @@ class EventData:
     ticket_url: str | None
     official_url: str | None
     status: str
+    ticket_release_date: date | None = None
+    ticket_release_time: time | None = None
 
 
 @dataclass(frozen=True)
@@ -165,6 +168,10 @@ def parse_event(values: Mapping[str, str]) -> EventData:
     venue_name = _text(values, "venue_name", errors, "会場名", limit=300)
     venue_address = _text(values, "venue_address", errors, "会場住所", limit=500)
     ticket_url = _url(values, "ticket_url", errors, "チケットURL")
+    ticket_release_date = _date(values, "ticket_release_date", errors, "チケット発売日", required=False)
+    ticket_release_time = _time(values, "ticket_release_time", errors, "チケット発売時刻")
+    if ticket_release_time and not ticket_release_date:
+        errors["ticket_release_date"] = "発売時刻を指定する場合は発売日も入力してください"
     official_url = _url(values, "official_url", errors, "公式URL")
     status = (values.get("status") or "scheduled").strip()
     if status not in EVENT_STATUSES:
@@ -174,7 +181,8 @@ def parse_event(values: Mapping[str, str]) -> EventData:
     if errors:
         raise InputError(errors)
     return EventData(title, event_date, open_at, start_at, end_at, venue_name,
-                     venue_address, ticket_url, official_url, status)
+                     venue_address, ticket_url, official_url, status,
+                     ticket_release_date, ticket_release_time)
 
 
 def parse_appearance(values: Mapping[str, str]) -> AppearanceData:

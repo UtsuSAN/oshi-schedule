@@ -44,6 +44,9 @@ def seed() -> int:
                 venue_name=venue,
                 status=status,
             )
+            if title == "秋色アイドルフェス":
+                event.ticket_release_date = today + timedelta(days=1)
+                event.ticket_release_time = time(10, 0)
             event.appearances.append(
                 Appearance(
                     artist=artist,

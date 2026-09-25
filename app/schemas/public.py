@@ -58,13 +58,15 @@ class PublicEvent(PublicModel):
     venue_name: str | None = None
     venue_address: str | None = None
     ticket_url: str | None = None
+    ticket_release_date: date | None = None
+    ticket_release_time: time | None = None
     official_url: str | None = None
     status: Literal["scheduled", "changed", "cancelled"]
     updated_at: datetime
     appearances: list[PublicAppearance]
     sources: list[PublicSource]
 
-    @field_serializer("open_at", "start_at", "end_at")
+    @field_serializer("open_at", "start_at", "end_at", "ticket_release_time")
     def serialize_local_time(self, value: time | None) -> str | None:
         return value.strftime("%H:%M") if value is not None else None
 

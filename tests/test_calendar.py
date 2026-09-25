@@ -69,6 +69,23 @@ def test_google_calendar_urls_encode_japanese_urls_and_local_times():
     assert "特典会" in benefit_params["text"][0]
 
 
+def test_ticket_release_calendar_uses_japan_time_or_all_day():
+    service = CalendarService()
+    timed, _ = make_event(ticket_release_date=date(2026, 9, 26), ticket_release_time=time(10))
+    timed_url = service.build_ticket_release_calendar_url(timed)
+    timed_params = parse_qs(urlparse(timed_url).query)
+    assert timed_params["dates"] == ["20260926T100000/20260926T103000"]
+    assert timed_params["ctz"] == ["Asia/Tokyo"]
+    assert "チケット発売" in timed_params["text"][0]
+
+    date_only, _ = make_event(ticket_release_date=date(2026, 9, 26))
+    date_only_url = service.build_ticket_release_calendar_url(date_only)
+    assert parse_qs(urlparse(date_only_url).query)["dates"] == ["20260926/20260927"]
+
+    missing, _ = make_event()
+    assert service.build_ticket_release_calendar_url(missing) is None
+
+
 def test_event_all_day_and_missing_end_durations_are_explicit():
     event, appearance = make_event()
     event.open_at = None
