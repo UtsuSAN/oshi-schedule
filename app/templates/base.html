@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9f9">
+  <title>{% block title %}推し活スケジュール{% endblock %}</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+</head>
+<body>
+  <header class="site-header">
+    <a class="brand" href="/{{ filter_query }}">推し活スケジュール</a>
+    <form class="artist-filter" action="{{ request.url.path }}" method="get">
+      {% if request.query_params.get('year') %}<input type="hidden" name="year" value="{{ request.query_params.get('year') }}">{% endif %}
+      {% if request.query_params.get('month') %}<input type="hidden" name="month" value="{{ request.query_params.get('month') }}">{% endif %}
+      <label for="artist_id">出演者</label>
+      <select id="artist_id" name="artist_id" onchange="this.form.submit()">
+        <option value="">全員</option>
+        {% for artist in artists %}<option value="{{ artist.id }}" {% if artist_id == artist.id %}selected{% endif %}>{{ artist.display_name or artist.name }}</option>{% endfor %}
+      </select>
+      <noscript><button type="submit">絞り込む</button></noscript>
+    </form>
+  </header>
+  <nav class="view-tabs" aria-label="予定の表示切替">
+    <a href="/{{ filter_query }}" class="{% if active_view == 'today' %}active{% endif %}">今日</a>
+    <a href="/week{{ filter_query }}" class="{% if active_view == 'week' %}active{% endif %}">今週</a>
+    {% if active_view == 'month' and request.query_params.get('year') %}
+      <a href="/month?year={{ request.query_params.get('year') }}&amp;month={{ request.query_params.get('month') }}{% if artist_id %}&amp;artist_id={{ artist_id }}{% endif %}" class="active">今月</a>
+    {% else %}
+      <a href="/month{{ filter_query }}" class="{% if active_view == 'month' %}active{% endif %}">今月</a>
+    {% endif %}
+  </nav>
+  <main class="page-content">{% block content %}{% endblock %}</main>
+  <footer class="site-footer">表示時刻: 日本時間 · <a href="/admin">管理画面</a></footer>
+</body>
+</html>

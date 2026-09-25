@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% block title %}取り込み候補{% endblock %}
+{% block content %}
+<div class="admin-heading"><h1>取り込み候補</h1><a class="primary-button" href="/admin/import">新規解析</a></div>
+<nav class="candidate-filters" aria-label="候補の状態">
+  <a href="/admin/candidates?status=pending" class="{% if status == 'pending' %}active{% endif %}">確認待ち</a>
+  <a href="/admin/candidates?status=approved" class="{% if status == 'approved' %}active{% endif %}">承認済み</a>
+  <a href="/admin/candidates?status=rejected" class="{% if status == 'rejected' %}active{% endif %}">却下</a>
+</nav>
+{% if candidates %}<div class="admin-list">
+  {% for candidate in candidates %}
+  <article class="admin-list-row">
+    <div>
+      <p class="row-date">{{ candidate.candidate_date.isoformat() if candidate.candidate_date else '日付未確認' }}</p>
+      <h2><a href="/admin/candidates/{{ candidate.id }}">{{ candidate.candidate_title or 'タイトル未確認' }}</a></h2>
+      <p>{{ (artists_by_id[candidate.artist_id].display_name or artists_by_id[candidate.artist_id].name) if candidate.artist_id in artists_by_id else 'アーティスト未選択' }}</p>
+      <p>解析時信頼度 {{ ((candidate.confidence or 0) * 100)|round|int }}% · {{ as_japan_datetime(candidate.created_at).strftime('%Y/%m/%d %H:%M') }}</p>
+    </div>
+    <div class="row-actions"><span class="admin-status {% if candidate.candidate_type == 'possible_duplicate' %}needs-review{% endif %}">{{ {'new':'新規','possible_duplicate':'重複の可能性','unknown':'要確認','update':'更新候補'}[candidate.candidate_type] }}</span><a href="/admin/candidates/{{ candidate.id }}">確認</a></div>
+  </article>
+  {% endfor %}
+</div>{% else %}<p class="empty-state">該当する候補はありません</p>{% endif %}
+{% endblock %}

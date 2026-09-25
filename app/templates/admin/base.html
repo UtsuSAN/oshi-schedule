@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f9f9">
+  <title>{% block title %}管理画面{% endblock %} | 推し活スケジュール</title>
+  <link rel="stylesheet" href="{{ url_for('static', path='/styles.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', path='/admin.css') }}">
+</head>
+<body>
+  <header class="admin-header">
+    <a class="brand" href="/admin">推し活スケジュール</a>
+    <a href="/">予定を見る</a>
+  </header>
+  <nav class="admin-nav" aria-label="管理メニュー">
+    <a href="/admin" class="{% if active_admin == 'home' %}active{% endif %}">管理</a>
+    <a href="/admin/artists" class="{% if active_admin == 'artists' %}active{% endif %}">推し</a>
+    <a href="/admin/events" class="{% if active_admin == 'events' %}active{% endif %}">イベント</a>
+    <a href="/admin/candidates" class="{% if active_admin == 'candidates' %}active{% endif %}">候補</a>
+  </nav>
+  <main class="admin-main">
+    {% if message %}<p class="admin-message" role="status">{{ message }}</p>{% endif %}
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

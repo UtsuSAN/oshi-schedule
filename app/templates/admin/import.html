@@ -1,0 +1,22 @@
+{% extends "admin/base.html" %}
+{% import "admin/_fields.html" as field %}
+{% block title %}投稿から取り込む{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/admin/candidates">← 候補一覧</a></p>
+<div class="admin-heading"><h1>投稿から取り込む</h1></div>
+<form method="post" class="admin-form">
+  <div class="form-field"><label for="raw_text">投稿本文<span class="required">必須</span></label>
+    <textarea id="raw_text" name="raw_text" rows="12" required {% if errors.raw_text %}aria-invalid="true" aria-describedby="raw_text-error"{% endif %}>{{ form.raw_text or '' }}</textarea>
+    {% if errors.raw_text %}<p class="field-error" id="raw_text-error">{{ errors.raw_text }}</p>{% endif %}
+  </div>
+  {{ field.input('source_url', '投稿URL', form.source_url, type='url', error=errors.source_url) }}
+  {{ field.input('source_account', '投稿アカウント', form.source_account, error=errors.source_account) }}
+  {{ field.input('published_at', '投稿日時（日本時間）', form.published_at, type='datetime-local', error=errors.published_at) }}
+  <div class="form-field"><label for="artist_id">対象アーティスト</label>
+    <select id="artist_id" name="artist_id"><option value="">未選択</option>
+      {% for artist in artists %}<option value="{{ artist.id }}" {% if form.artist_id == artist.id|string %}selected{% endif %}>{{ artist.display_name or artist.name }}</option>{% endfor %}
+    </select>{% if errors.artist_id %}<p class="field-error">{{ errors.artist_id }}</p>{% endif %}
+  </div>
+  <div class="form-actions"><button class="primary-button" type="submit">候補を作成</button></div>
+</form>
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "admin/base.html" %}
+{% block content %}
+<div class="admin-heading"><h1>管理画面</h1></div>
+<div class="admin-summary">
+  <section><h2>アーティスト</h2><p>{{ artist_count }}件</p><a href="/admin/artists">一覧・管理</a></section>
+  <section><h2>イベント</h2><p>{{ event_count }}件</p><a href="/admin/events">一覧・管理</a></section>
+  <section><h2>確認待ち候補</h2><p>{{ pending_count }}件</p><a href="/admin/candidates">候補を見る</a></section>
+</div>
+<p class="admin-actions"><a class="primary-button" href="/admin/import">投稿から取り込む</a><a class="secondary-button" href="/admin/events/new">イベントを登録</a><a class="secondary-button" href="/admin/artists/new">アーティストを登録</a></p>
+{% endblock %}

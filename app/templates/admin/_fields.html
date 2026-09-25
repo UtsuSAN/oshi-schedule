@@ -1,0 +1,15 @@
+{% macro input(name, label, value='', type='text', error='', required=false) %}
+<div class="form-field">
+  <label for="{{ name }}">{{ label }}{% if required %}<span class="required">必須</span>{% endif %}</label>
+  <input id="{{ name }}" name="{{ name }}" type="{{ type }}" value="{{ value or '' }}" {% if required %}required{% endif %} {% if error %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>
+  {% if error %}<p class="field-error" id="{{ name }}-error">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}
+
+{% macro textarea(name, label, value='', error='') %}
+<div class="form-field">
+  <label for="{{ name }}">{{ label }}</label>
+  <textarea id="{{ name }}" name="{{ name }}" rows="4" {% if error %}aria-invalid="true" aria-describedby="{{ name }}-error"{% endif %}>{{ value or '' }}</textarea>
+  {% if error %}<p class="field-error" id="{{ name }}-error">{{ error }}</p>{% endif %}
+</div>
+{% endmacro %}

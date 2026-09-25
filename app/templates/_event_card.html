@@ -1,0 +1,26 @@
+<article class="event-card">
+  <div class="event-card-heading">
+    <h2><a href="/events/{{ event.id }}{{ filter_query }}">{{ event.title }}</a></h2>
+    {% if event.status == 'changed' %}<span class="status changed">変更あり</span>{% elif event.status == 'cancelled' %}<span class="status cancelled">中止</span>{% endif %}
+  </div>
+  {% if event.venue_name %}<p class="venue">📍 {{ event.venue_name }}</p>{% endif %}
+  {% if event.appearances %}
+    <div class="appearances">
+      {% for appearance in event.appearances %}
+        <section class="appearance-row">
+          <h3>{{ appearance.artist.display_name or appearance.artist.name }}</h3>
+          {% if appearance.appearance_start_at or appearance.appearance_end_at %}
+            <p class="time-row"><span>出演</span><strong>{{ appearance.appearance_start_at.strftime('%H:%M') if appearance.appearance_start_at else '未定' }}{% if appearance.appearance_end_at %} - {{ appearance.appearance_end_at.strftime('%H:%M') }}{% endif %}</strong></p>
+          {% endif %}
+          {% if appearance.benefit_start_at or appearance.benefit_end_at %}
+            <p class="time-row benefit"><span>特典会</span><strong>{{ appearance.benefit_start_at.strftime('%H:%M') if appearance.benefit_start_at else '未定' }}{% if appearance.benefit_end_at %} - {{ appearance.benefit_end_at.strftime('%H:%M') }}{% endif %}</strong></p>
+          {% endif %}
+        </section>
+      {% endfor %}
+    </div>
+  {% endif %}
+  {% if event.open_at or event.start_at %}
+    <p class="event-times">{% if event.open_at %}<span>OPEN {{ event.open_at.strftime('%H:%M') }}</span>{% endif %}{% if event.start_at %}<span>START {{ event.start_at.strftime('%H:%M') }}</span>{% endif %}</p>
+  {% endif %}
+  <a class="detail-link" href="/events/{{ event.id }}{{ filter_query }}">詳細を見る</a>
+</article>

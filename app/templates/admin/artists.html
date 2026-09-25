@@ -1,0 +1,18 @@
+{% extends "admin/base.html" %}
+{% block title %}アーティスト{% endblock %}
+{% block content %}
+<div class="admin-heading"><h1>アーティスト</h1><a class="primary-button" href="/admin/artists/new">新規登録</a></div>
+{% if artists %}
+<div class="admin-list">
+  {% for artist in artists %}
+  <article class="admin-list-row">
+    <div><h2>{{ artist.display_name or artist.name }}</h2>
+      {% if artist.display_name and artist.display_name != artist.name %}<p>{{ artist.name }}</p>{% endif %}
+      {% if artist.x_username %}<p>@{{ artist.x_username }}</p>{% endif %}
+    </div>
+    <div class="row-actions"><span class="admin-status {% if not artist.enabled %}inactive{% endif %}">{{ '有効' if artist.enabled else '無効' }}</span><a href="/admin/artists/{{ artist.id }}/edit">編集</a></div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}<p class="empty-state">アーティストはまだ登録されていません</p>{% endif %}
+{% endblock %}

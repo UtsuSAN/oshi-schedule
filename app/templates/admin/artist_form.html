@@ -1,0 +1,15 @@
+{% extends "admin/base.html" %}
+{% import "admin/_fields.html" as field %}
+{% block title %}{{ 'アーティスト編集' if artist else 'アーティスト登録' }}{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/admin/artists">← アーティスト一覧</a></p>
+<div class="admin-heading"><h1>{{ 'アーティスト編集' if artist else 'アーティスト登録' }}</h1></div>
+<form method="post" class="admin-form">
+  {{ field.input('name', '名前', form.name, error=errors.name, required=true) }}
+  {{ field.input('display_name', '表示名', form.display_name, error=errors.display_name) }}
+  {{ field.input('x_username', 'Xユーザー名', form.x_username, error=errors.x_username) }}
+  {{ field.input('official_url', '公式URL', form.official_url, type='url', error=errors.official_url) }}
+  <label class="checkbox-field"><input type="checkbox" name="enabled" {% if enabled %}checked{% endif %}><span>有効にする</span></label>
+  <div class="form-actions"><button class="primary-button" type="submit">{{ '変更を保存' if artist else '登録する' }}</button></div>
+</form>
+{% endblock %}

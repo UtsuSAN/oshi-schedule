@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}今週の予定 | 推し活スケジュール{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow">THIS WEEK</p>
+  <h1>{{ week_start.month }}/{{ week_start.day }} - {{ week_end.month }}/{{ week_end.day }}</h1>
+</section>
+<div class="week-list">
+  {% for day, events in days.items() %}
+    <section class="week-day {% if day == today %}is-today{% endif %}">
+      <h2><span>{{ day.month }}/{{ day.day }}</span><span>{{ weekdays[day.weekday()] }}曜日</span>{% if day == today %}<em>今日</em>{% endif %}</h2>
+      {% if events %}<div class="event-list">{% for event in events %}{% include "_event_card.html" %}{% endfor %}</div>
+      {% else %}<p class="no-events">予定なし</p>{% endif %}
+    </section>
+  {% endfor %}
+</div>
+{% endblock %}

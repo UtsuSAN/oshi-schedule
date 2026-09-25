@@ -1,0 +1,1 @@
+"""Oshi schedule application package."""

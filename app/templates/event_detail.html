@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}{{ event.title }} | 推し活スケジュール{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/{{ filter_query }}">← 予定一覧へ戻る</a></p>
+<article class="detail-card">
+  <p class="eyebrow">EVENT DETAIL</p>
+  <h1>{{ event.title }}</h1>
+  {% if event.status == 'changed' %}<p class="status changed">変更あり</p>{% elif event.status == 'cancelled' %}<p class="status cancelled">中止</p>{% endif %}
+  <dl class="detail-list">
+    <dt>開催日</dt><dd>{{ event.event_date.year }}年{{ event.event_date.month }}月{{ event.event_date.day }}日（{{ weekdays[event.event_date.weekday()] }}）</dd>
+    {% if event.open_at %}<dt>OPEN</dt><dd>{{ event.open_at.strftime('%H:%M') }}</dd>{% endif %}
+    {% if event.start_at %}<dt>START</dt><dd>{{ event.start_at.strftime('%H:%M') }}</dd>{% endif %}
+    {% if event.end_at %}<dt>END</dt><dd>{{ event.end_at.strftime('%H:%M') }}</dd>{% endif %}
+    {% if event.venue_name %}<dt>会場</dt><dd>{{ event.venue_name }}</dd>{% endif %}
+    {% if event.venue_address %}<dt>住所</dt><dd>{{ event.venue_address }}</dd>{% endif %}
+  </dl>
+  {% if event.appearances %}
+  <section class="detail-section"><h2>出演情報</h2>
+    {% for appearance in event.appearances %}
+      <div class="detail-appearance">
+        <h3>{{ appearance.artist.display_name or appearance.artist.name }}</h3>
+        {% if appearance.stage_name %}<p>ステージ: {{ appearance.stage_name }}</p>{% endif %}
+        {% if appearance.appearance_start_at or appearance.appearance_end_at %}<p><span>出演</span> {{ appearance.appearance_start_at.strftime('%H:%M') if appearance.appearance_start_at else '未定' }}{% if appearance.appearance_end_at %} - {{ appearance.appearance_end_at.strftime('%H:%M') }}{% endif %}</p>{% endif %}
+        {% if appearance.benefit_start_at or appearance.benefit_end_at %}<p><span>特典会</span> {{ appearance.benefit_start_at.strftime('%H:%M') if appearance.benefit_start_at else '未定' }}{% if appearance.benefit_end_at %} - {{ appearance.benefit_end_at.strftime('%H:%M') }}{% endif %}</p>{% endif %}
+        {% if appearance.notes %}<p class="notes">{{ appearance.notes }}</p>{% endif %}
+      </div>
+    {% endfor %}
+  </section>
+  {% endif %}
+  <section class="detail-section calendar-section" aria-labelledby="calendar-heading">
+    <h2 id="calendar-heading">カレンダーに追加</h2>
+    <div class="calendar-item">
+      <div class="calendar-item-info">
+        <h3>イベント全体</h3>
+        <p>{% if event.open_at or event.start_at %}{{ (event.open_at or event.start_at).strftime('%H:%M') }}{% if event.end_at %} - {{ event.end_at.strftime('%H:%M') }}{% endif %}{% else %}終日{% endif %}</p>
+      </div>
+      <div class="calendar-actions">
+        <a href="/events/{{ event.id }}/calendar/google/event" target="_blank" rel="noopener noreferrer">Google Calendar</a>
+        <a href="/events/{{ event.id }}/calendar/event.ics">ICS</a>
+      </div>
+    </div>
+    {% for appearance in event.appearances %}
+      {% set artist_name = appearance.artist.display_name or appearance.artist.name %}
+      {% if appearance.appearance_start_at %}
+      <div class="calendar-item">
+        <div class="calendar-item-info">
+          <h3>{{ artist_name }} 出演</h3>
+          <p>{{ appearance.appearance_start_at.strftime('%H:%M') }}{% if appearance.appearance_end_at %} - {{ appearance.appearance_end_at.strftime('%H:%M') }}{% endif %}</p>
+        </div>
+        <div class="calendar-actions">
+          <a href="/events/{{ event.id }}/calendar/google/appearance/{{ appearance.id }}" target="_blank" rel="noopener noreferrer">Google Calendar</a>
+          <a href="/events/{{ event.id }}/calendar/appearance/{{ appearance.id }}.ics">ICS</a>
+        </div>
+      </div>
+      {% endif %}
+      {% if appearance.benefit_start_at %}
+      <div class="calendar-item">
+        <div class="calendar-item-info">
+          <h3>{{ artist_name }} 特典会</h3>
+          <p>{{ appearance.benefit_start_at.strftime('%H:%M') }}{% if appearance.benefit_end_at %} - {{ appearance.benefit_end_at.strftime('%H:%M') }}{% endif %}</p>
+        </div>
+        <div class="calendar-actions">
+          <a href="/events/{{ event.id }}/calendar/google/benefit/{{ appearance.id }}" target="_blank" rel="noopener noreferrer">Google Calendar</a>
+          <a href="/events/{{ event.id }}/calendar/benefit/{{ appearance.id }}.ics">ICS</a>
+        </div>
+      </div>
+      {% endif %}
+    {% endfor %}
+  </section>
+  {% if event.ticket_url or event.official_url %}<section class="detail-section"><h2>関連リンク</h2><ul class="link-list">
+    {% if event.ticket_url %}<li><a href="{{ event.ticket_url }}" target="_blank" rel="noopener noreferrer">チケット情報</a></li>{% endif %}
+    {% if event.official_url %}<li><a href="{{ event.official_url }}" target="_blank" rel="noopener noreferrer">公式情報</a></li>{% endif %}
+  </ul></section>{% endif %}
+  {% if event.sources %}<section class="detail-section"><h2>元情報</h2><ul class="source-list">
+    {% for source in event.sources %}
+      <li><strong>{{ {'x': 'X', 'manual': '手動', 'official_site': '公式サイト', 'other': 'その他'}.get(source.source_type, source.source_type) }}</strong>
+        {% if source.source_account %}<span>{{ source.source_account }}</span>{% endif %}
+        {% if source.source_url %}<a href="{{ source.source_url }}" target="_blank" rel="noopener noreferrer">出典を開く</a>{% endif %}
+        {% if source.published_at %}<span>公開 {{ source.published_at|jst('%Y/%m/%d %H:%M') }}</span>{% endif %}
+        {% if source.fetched_at %}<span>取得 {{ source.fetched_at|jst('%Y/%m/%d %H:%M') }}</span>{% endif %}
+      </li>
+    {% endfor %}
+  </ul></section>{% endif %}
+  {% if updated_at_jst %}<p class="updated-at">最終更新: {{ updated_at_jst.strftime('%Y/%m/%d %H:%M') }}（日本時間）</p>{% endif %}
+</article>
+{% endblock %}

@@ -1,0 +1,12 @@
+[
+  {
+    "text": "2026/09/27(日)\n架空アイドルフェス\n会場：青空ホール\nOPEN 17:00\nSTART 17:30\n出演 18:10〜18:30",
+    "source_url": "https://example.test/fictional/posts/1001",
+    "source_account": "fictional_event_account",
+    "external_id": "fictional-post-1001",
+    "metadata": {"example": true}
+  },
+  {
+    "text": "2026/10/01\n架空ユニット ミニライブ\n開場18:00 開演18:30"
+  }
+]

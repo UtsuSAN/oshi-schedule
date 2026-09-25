@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% import "admin/_fields.html" as field %}
+{% block title %}{{ '出典編集' if source else '出典追加' }}{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/admin/events/{{ event.id }}/edit">← {{ event.title }}</a></p>
+<div class="admin-heading"><h1>{{ '出典編集' if source else '出典追加' }}</h1></div>
+<form method="post" class="admin-form">
+  <div class="form-field"><label for="source_type">種類</label><select id="source_type" name="source_type">
+    <option value="manual" {% if form.source_type == 'manual' %}selected{% endif %}>手動</option>
+    <option value="x" {% if form.source_type == 'x' %}selected{% endif %}>X</option>
+    <option value="official_site" {% if form.source_type == 'official_site' %}selected{% endif %}>公式サイト</option>
+    <option value="other" {% if form.source_type == 'other' %}selected{% endif %}>その他</option>
+  </select>{% if errors.source_type %}<p class="field-error">{{ errors.source_type }}</p>{% endif %}</div>
+  {{ field.input('source_url', '出典URL', form.source_url, type='url', error=errors.source_url) }}
+  {{ field.input('source_account', '投稿者', form.source_account, error=errors.source_account) }}
+  {{ field.input('published_at', '投稿日時（日本時間）', form.published_at, type='datetime-local', error=errors.published_at) }}
+  {{ field.textarea('source_text', '出典本文（管理画面のみ）', form.source_text, error=errors.source_text) }}
+  <div class="form-actions"><button class="primary-button" type="submit">{{ '変更を保存' if source else '出典を追加' }}</button></div>
+</form>
+{% endblock %}

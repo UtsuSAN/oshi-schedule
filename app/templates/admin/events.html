@@ -1,0 +1,20 @@
+{% extends "admin/base.html" %}
+{% block title %}イベント{% endblock %}
+{% block content %}
+<div class="admin-heading"><h1>イベント</h1><a class="primary-button" href="/admin/events/new">新規登録</a></div>
+{% if events %}
+<div class="admin-list">
+  {% for event in events %}
+  <article class="admin-list-row">
+    <div>
+      <p class="row-date">{{ event.event_date.year }}年{{ event.event_date.month }}月{{ event.event_date.day }}日 {% if event_is_past(event) %}<span class="past-label">終了</span>{% else %}<span class="upcoming-label">今後</span>{% endif %}</p>
+      <h2>{{ event.title }}</h2>
+      {% if event.venue_name %}<p>{{ event.venue_name }}</p>{% endif %}
+      {% if event.appearances %}<p>{% for appearance in event.appearances %}{{ appearance.artist.display_name or appearance.artist.name }}{% if not loop.last %} / {% endif %}{% endfor %}</p>{% endif %}
+    </div>
+    <div class="row-actions"><span class="admin-status {% if event.status == 'cancelled' %}inactive{% endif %}">{{ {'scheduled':'予定','changed':'変更あり','cancelled':'中止','unknown':'未確認'}[event.status] }}</span><a href="/admin/events/{{ event.id }}/edit">編集</a></div>
+  </article>
+  {% endfor %}
+</div>
+{% else %}<p class="empty-state">イベントはまだ登録されていません</p>{% endif %}
+{% endblock %}

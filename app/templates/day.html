@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}{{ day.month }}月{{ day.day }}日の予定 | 推し活スケジュール{% endblock %}
+{% block content %}
+<section class="page-heading">
+  <p class="eyebrow"><a href="/month{{ filter_query }}">月間カレンダーへ戻る</a></p>
+  <h1>{{ day.month }}月{{ day.day }}日 <span>{{ weekdays[day.weekday()] }}曜日</span></h1>
+</section>
+{% if events %}<div class="event-list">{% for event in events %}{% include "_event_card.html" %}{% endfor %}</div>
+{% else %}<p class="empty-state">この日の予定はありません</p>{% endif %}
+{% endblock %}

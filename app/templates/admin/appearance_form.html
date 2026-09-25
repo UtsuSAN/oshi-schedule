@@ -1,0 +1,23 @@
+{% extends "admin/base.html" %}
+{% import "admin/_fields.html" as field %}
+{% block title %}{{ '出演情報編集' if appearance else '出演者追加' }}{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/admin/events/{{ event.id }}/edit">← {{ event.title }}</a></p>
+<div class="admin-heading"><h1>{{ '出演情報編集' if appearance else '出演者追加' }}</h1></div>
+<form method="post" class="admin-form">
+  <div class="form-field"><label for="artist_id">アーティスト<span class="required">必須</span></label>
+    <select id="artist_id" name="artist_id" required><option value="">選択してください</option>
+    {% for artist in artists %}<option value="{{ artist.id }}" {% if form.artist_id == artist.id|string %}selected{% endif %}>{{ artist.display_name or artist.name }}{% if not artist.enabled %}（無効）{% endif %}</option>{% endfor %}
+    </select>{% if errors.artist_id %}<p class="field-error">{{ errors.artist_id }}</p>{% endif %}
+  </div>
+  <div class="form-grid">
+    {{ field.input('appearance_start_at', '出演開始', form.appearance_start_at, type='time', error=errors.appearance_start_at) }}
+    {{ field.input('appearance_end_at', '出演終了', form.appearance_end_at, type='time', error=errors.appearance_end_at) }}
+    {{ field.input('benefit_start_at', '特典会開始', form.benefit_start_at, type='time', error=errors.benefit_start_at) }}
+    {{ field.input('benefit_end_at', '特典会終了', form.benefit_end_at, type='time', error=errors.benefit_end_at) }}
+  </div>
+  {{ field.input('stage_name', 'ステージ名', form.stage_name, error=errors.stage_name) }}
+  {{ field.textarea('notes', '出演メモ', form.notes, error=errors.notes) }}
+  <div class="form-actions"><button class="primary-button" type="submit">{{ '変更を保存' if appearance else '出演者を追加' }}</button></div>
+</form>
+{% endblock %}

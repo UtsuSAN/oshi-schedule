@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{{ month_label }} | 推し活スケジュール{% endblock %}
+{% block content %}
+<section class="page-heading month-heading">
+  <p class="eyebrow">MONTH</p>
+  <div class="month-controls">
+    {% if prev_month %}<a class="month-arrow" href="/month?year={{ prev_month.year }}&amp;month={{ prev_month.month }}{% if artist_id %}&amp;artist_id={{ artist_id }}{% endif %}" aria-label="前の月">‹</a>{% else %}<span></span>{% endif %}
+    <h1>{{ month_label }}</h1>
+    {% if next_month %}<a class="month-arrow" href="/month?year={{ next_month.year }}&amp;month={{ next_month.month }}{% if artist_id %}&amp;artist_id={{ artist_id }}{% endif %}" aria-label="次の月">›</a>{% else %}<span></span>{% endif %}
+  </div>
+</section>
+<div class="calendar" role="grid" aria-label="{{ month_label }}のカレンダー">
+  {% for weekday in weekdays %}<div class="calendar-weekday" role="columnheader">{{ weekday }}</div>{% endfor %}
+  {% for cell in cells %}
+    {% if cell.date %}
+      <a class="calendar-cell {% if cell.date == today %}is-today{% endif %}" role="gridcell" href="/day/{{ cell.date.isoformat() }}{{ filter_query }}" aria-label="{{ cell.date.month }}月{{ cell.date.day }}日、{{ cell.events|length }}件">
+        <span class="calendar-date">{{ cell.date.day }}</span>
+        {% if cell.events %}
+          <span class="calendar-mobile-count">{{ cell.events|length }}件</span>
+          <span class="calendar-events">
+            {% for event in cell.events[:1] %}<span class="calendar-event-name">{{ event.title }}</span>{% endfor %}
+            {% if cell.events|length > 1 %}<span class="calendar-count">ほか{{ cell.events|length - 1 }}件</span>{% endif %}
+          </span>
+        {% endif %}
+      </a>
+    {% else %}<div class="calendar-cell is-blank" aria-hidden="true"></div>{% endif %}
+  {% endfor %}
+</div>
+{% endblock %}

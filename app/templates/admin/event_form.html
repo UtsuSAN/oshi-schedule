@@ -1,0 +1,80 @@
+{% extends "admin/base.html" %}
+{% import "admin/_fields.html" as field %}
+{% block title %}{{ 'イベント編集' if event else 'イベント登録' }}{% endblock %}
+{% block content %}
+<p class="back-link"><a href="/admin/events">← イベント一覧</a></p>
+<div class="admin-heading"><h1>{{ 'イベント編集' if event else 'イベント登録' }}</h1>{% if event %}<a href="/events/{{ event.id }}">公開表示</a>{% endif %}</div>
+<form method="post" class="admin-form">
+  <fieldset><legend>イベント</legend>
+    {{ field.input('title', 'イベント名', form.title, error=errors.title, required=true) }}
+    {{ field.input('event_date', '開催日', form.event_date, type='date', error=errors.event_date, required=true) }}
+    <div class="form-grid">
+      {{ field.input('open_at', 'OPEN', form.open_at, type='time', error=errors.open_at) }}
+      {{ field.input('start_at', 'START', form.start_at, type='time', error=errors.start_at) }}
+      {{ field.input('end_at', 'END', form.end_at, type='time', error=errors.end_at) }}
+    </div>
+    {{ field.input('venue_name', '会場名', form.venue_name, error=errors.venue_name) }}
+    {{ field.input('venue_address', '会場住所', form.venue_address, error=errors.venue_address) }}
+    {{ field.input('ticket_url', 'チケットURL', form.ticket_url, type='url', error=errors.ticket_url) }}
+    {{ field.input('official_url', '公式URL', form.official_url, type='url', error=errors.official_url) }}
+    <div class="form-field"><label for="status">状態</label>
+      <select id="status" name="status">
+        <option value="scheduled" {% if form.status == 'scheduled' %}selected{% endif %}>予定</option>
+        <option value="changed" {% if form.status == 'changed' %}selected{% endif %}>変更あり</option>
+        <option value="cancelled" {% if form.status == 'cancelled' %}selected{% endif %}>中止</option>
+        <option value="unknown" {% if form.status == 'unknown' %}selected{% endif %}>未確認</option>
+      </select>{% if errors.status %}<p class="field-error">{{ errors.status }}</p>{% endif %}
+    </div>
+  </fieldset>
+  {% if not event %}
+  <fieldset><legend>最初の出演者</legend>
+    <div class="form-field"><label for="artist_id">アーティスト<span class="required">必須</span></label>
+      <select id="artist_id" name="artist_id" required>
+        <option value="">選択してください</option>
+        {% for artist in artists %}<option value="{{ artist.id }}" {% if appearance_form.artist_id == artist.id|string %}selected{% endif %}>{{ artist.display_name or artist.name }}</option>{% endfor %}
+      </select>{% if errors.artist_id %}<p class="field-error">{{ errors.artist_id }}</p>{% endif %}
+      {% if not artists %}<p class="field-note"><a href="/admin/artists/new">先にアーティストを登録</a></p>{% endif %}
+    </div>
+    <div class="form-grid">
+      {{ field.input('appearance_start_at', '出演開始', appearance_form.appearance_start_at, type='time', error=errors.appearance_start_at) }}
+      {{ field.input('appearance_end_at', '出演終了', appearance_form.appearance_end_at, type='time', error=errors.appearance_end_at) }}
+      {{ field.input('benefit_start_at', '特典会開始', appearance_form.benefit_start_at, type='time', error=errors.benefit_start_at) }}
+      {{ field.input('benefit_end_at', '特典会終了', appearance_form.benefit_end_at, type='time', error=errors.benefit_end_at) }}
+    </div>
+    {{ field.input('stage_name', 'ステージ名', appearance_form.stage_name, error=errors.stage_name) }}
+    {{ field.textarea('notes', '出演メモ', appearance_form.notes, error=errors.notes) }}
+  </fieldset>
+  <fieldset><legend>出典（任意）</legend>
+    <div class="form-field"><label for="source_type">種類</label><select id="source_type" name="source_type">
+      <option value="manual" {% if source_form.source_type == 'manual' %}selected{% endif %}>手動</option>
+      <option value="x" {% if source_form.source_type == 'x' %}selected{% endif %}>X</option>
+      <option value="official_site" {% if source_form.source_type == 'official_site' %}selected{% endif %}>公式サイト</option>
+      <option value="other" {% if source_form.source_type == 'other' %}selected{% endif %}>その他</option>
+    </select>{% if errors.source_type %}<p class="field-error">{{ errors.source_type }}</p>{% endif %}</div>
+    {{ field.input('source_url', '出典URL', source_form.source_url, type='url', error=errors.source_url) }}
+    {{ field.input('source_account', '投稿者', source_form.source_account, error=errors.source_account) }}
+    {{ field.input('published_at', '投稿日時（日本時間）', source_form.published_at, type='datetime-local', error=errors.published_at) }}
+    {{ field.textarea('source_text', '出典本文（管理画面のみ）', source_form.source_text, error=errors.source_text) }}
+  </fieldset>
+  {% endif %}
+  <div class="form-actions"><button class="primary-button" type="submit">{{ '変更を保存' if event else 'イベントを登録' }}</button></div>
+</form>
+{% if event %}
+<section class="admin-related"><div class="section-heading"><h2>出演情報</h2><a class="secondary-button" href="/admin/events/{{ event.id }}/appearances/new">出演者を追加</a></div>
+  {% for appearance in event.appearances %}
+  <div class="related-row"><div><strong>{{ appearance.artist.display_name or appearance.artist.name }}</strong>
+    {% if appearance.appearance_start_at %}<p>出演 {{ appearance.appearance_start_at.strftime('%H:%M') }}{% if appearance.appearance_end_at %} - {{ appearance.appearance_end_at.strftime('%H:%M') }}{% endif %}</p>{% endif %}
+    {% if appearance.benefit_start_at %}<p>特典会 {{ appearance.benefit_start_at.strftime('%H:%M') }}{% if appearance.benefit_end_at %} - {{ appearance.benefit_end_at.strftime('%H:%M') }}{% endif %}</p>{% endif %}
+  </div><a href="/admin/events/{{ event.id }}/appearances/{{ appearance.id }}/edit">編集</a></div>
+  {% endfor %}
+</section>
+<section class="admin-related"><div class="section-heading"><h2>出典</h2><a class="secondary-button" href="/admin/events/{{ event.id }}/sources/new">出典を追加</a></div>
+  {% for source in event.sources %}
+  <div class="related-row"><div><strong>{{ {'manual':'手動','x':'X','official_site':'公式サイト','other':'その他'}[source.source_type] }}</strong>
+    {% if source.source_url %}<p class="break-all">{{ source.source_url }}</p>{% endif %}
+    {% if source.source_text %}<p class="source-text">{{ source.source_text }}</p>{% endif %}
+  </div><a href="/admin/events/{{ event.id }}/sources/{{ source.id }}/edit">編集</a></div>
+  {% endfor %}
+</section>
+{% endif %}
+{% endblock %}
