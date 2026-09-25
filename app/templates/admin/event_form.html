@@ -16,6 +16,10 @@
     {{ field.input('venue_name', '会場名', form.venue_name, error=errors.venue_name) }}
     {{ field.input('venue_address', '会場住所', form.venue_address, error=errors.venue_address) }}
     {{ field.input('ticket_url', 'チケットURL', form.ticket_url, type='url', error=errors.ticket_url) }}
+    <div class="form-grid">
+      {{ field.input('ticket_release_date', 'チケット発売日', form.ticket_release_date, type='date', error=errors.ticket_release_date) }}
+      {{ field.input('ticket_release_time', '発売時刻（任意）', form.ticket_release_time, type='time', error=errors.ticket_release_time) }}
+    </div>
     {{ field.input('official_url', '公式URL', form.official_url, type='url', error=errors.official_url) }}
     <div class="form-field"><label for="status">状態</label>
       <select id="status" name="status">

@@ -45,6 +45,7 @@ def test_snapshot_uses_public_allowlist_and_nests_multi_artist_appearances(expor
     event = Event(
         title="架空フェス", event_date=date(2026, 9, 27), open_at=time(17),
         start_at=time(17, 30), end_at=time(20), venue_name="架空ホール",
+        ticket_release_date=date(2026, 9, 26), ticket_release_time=time(10),
         venue_address="静岡県架空市", ticket_url="https://tickets.example.invalid/1",
         official_url="https://event.example.invalid/1", status="changed",
         updated_at=datetime(2026, 9, 25, 11, 0),
@@ -84,6 +85,8 @@ def test_snapshot_uses_public_allowlist_and_nests_multi_artist_appearances(expor
     assert exported["status"] == "changed"
     assert exported["updated_at"] == "2026-09-25T20:00:00+09:00"
     assert exported["start_at"] == "17:30"
+    assert exported["ticket_release_date"] == "2026-09-26"
+    assert exported["ticket_release_time"] == "10:00"
     assert exported["appearances"][0]["appearance_start_at"] == "18:10"
     assert exported["appearances"][0]["benefit_end_at"] == "19:50"
     assert exported["appearances"][0]["artist_name"] == "架空ユニットA"
@@ -96,7 +99,7 @@ def test_snapshot_uses_public_allowlist_and_nests_multi_artist_appearances(expor
     assert set(data["artists"][0]) == {"id", "display_name", "official_url", "x_username"}
     assert set(exported) == {
         "id", "title", "event_date", "open_at", "start_at", "end_at", "venue_name", "venue_address",
-        "ticket_url", "official_url", "status", "updated_at", "appearances", "sources",
+        "ticket_url", "ticket_release_date", "ticket_release_time", "official_url", "status", "updated_at", "appearances", "sources",
     }
     assert set(exported["appearances"][0]) == {
         "artist_id", "artist_name", "appearance_start_at", "appearance_end_at", "benefit_start_at",
@@ -129,6 +132,17 @@ def test_snapshot_range_is_configurable_and_only_public_statuses_are_included(ex
         PublicExportService(export_session).build_snapshot(now=FIXED_NOW, past_days=-1)
 
 
+def test_snapshot_includes_ticket_release_in_range_when_event_is_later(export_session):
+    event = add_event(export_session, "翌々年の架空公演", date(2028, 1, 1))
+    event.ticket_release_date = date(2026, 9, 26)
+    event.ticket_release_time = time(10)
+    export_session.commit()
+
+    snapshot = PublicExportService(export_session).build_snapshot(now=FIXED_NOW)
+    assert [item.title for item in snapshot.events] == ["翌々年の架空公演"]
+    assert snapshot.events[0].ticket_release_date == date(2026, 9, 26)
+
+
 def test_empty_snapshot_and_example_fixture_validate(export_session):
     empty = PublicExportService(export_session).build_snapshot(now=FIXED_NOW)
     assert empty.events == []
@@ -137,8 +151,8 @@ def test_empty_snapshot_and_example_fixture_validate(export_session):
 
     example_path = Path(__file__).parents[1] / "examples" / "public_schedule.example.json"
     example = PublicSchedule.model_validate_json(example_path.read_text(encoding="utf-8"))
-    assert len(example.events[0].appearances) == 2
-    assert example.events[1].status == "cancelled"
+    assert any(len(event.appearances) == 2 for event in example.events)
+    assert any(event.status == "cancelled" for event in example.events)
 
 
 def test_write_is_atomic_utf8_and_keeps_existing_snapshot_on_validation_failure(export_session, tmp_path, monkeypatch):

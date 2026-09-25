@@ -57,7 +57,7 @@ def _model_values(obj: object | None, fields: tuple[str, ...]) -> dict[str, str]
 
 ARTIST_FIELDS = ("name", "display_name", "x_username", "official_url")
 EVENT_FIELDS = ("title", "event_date", "open_at", "start_at", "end_at", "venue_name",
-                "venue_address", "ticket_url", "official_url", "status")
+                "venue_address", "ticket_url", "ticket_release_date", "ticket_release_time", "official_url", "status")
 APPEARANCE_FIELDS = ("artist_id", "appearance_start_at", "appearance_end_at",
                      "benefit_start_at", "benefit_end_at", "stage_name", "notes")
 SOURCE_FIELDS = ("source_type", "source_url", "source_account", "source_text", "published_at")

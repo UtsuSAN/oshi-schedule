@@ -22,6 +22,8 @@ class Event(Base):
     venue_name: Mapped[str | None] = mapped_column(String(300))
     venue_address: Mapped[str | None] = mapped_column(String(500))
     ticket_url: Mapped[str | None] = mapped_column(String(2048))
+    ticket_release_date: Mapped[date | None] = mapped_column(Date)
+    ticket_release_time: Mapped[time | None] = mapped_column(Time)
     official_url: Mapped[str | None] = mapped_column(String(2048))
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="scheduled", server_default="scheduled")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=utc_now, server_default=func.current_timestamp())

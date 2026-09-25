@@ -13,7 +13,9 @@
     {% if event.end_at %}<dt>END</dt><dd>{{ event.end_at.strftime('%H:%M') }}</dd>{% endif %}
     {% if event.venue_name %}<dt>会場</dt><dd>{{ event.venue_name }}</dd>{% endif %}
     {% if event.venue_address %}<dt>住所</dt><dd>{{ event.venue_address }}</dd>{% endif %}
+    {% if event.ticket_release_date %}<dt>チケット発売</dt><dd>{{ event.ticket_release_date.strftime('%Y年%m月%d日') }}{% if event.ticket_release_time %} {{ event.ticket_release_time.strftime('%H:%M') }}{% endif %}</dd>{% endif %}
   </dl>
+  {% if event.ticket_release_date and event.status != 'cancelled' %}<section class="detail-section calendar-section"><h2>チケット発売予定</h2><div class="calendar-item"><div class="calendar-item-info"><h3>チケット発売</h3><p>{{ event.ticket_release_date.strftime('%Y/%m/%d') }}{% if event.ticket_release_time %} {{ event.ticket_release_time.strftime('%H:%M') }}{% endif %}</p></div><div class="calendar-actions"><a href="/events/{{ event.id }}/calendar/google/ticket-release" target="_blank" rel="noopener noreferrer">Google Calendar</a></div></div></section>{% endif %}
   {% if event.appearances %}
   <section class="detail-section"><h2>出演情報</h2>
     {% for appearance in event.appearances %}

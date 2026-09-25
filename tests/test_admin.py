@@ -49,6 +49,32 @@ def test_admin_dashboard_and_lists_are_readable(admin_client):
     assert "0件" in client.get("/admin").text
 
 
+def test_ticket_release_can_be_saved_with_or_without_time(admin_client):
+    client, session = admin_client
+    artist = Artist(name="架空ユニット")
+    session.add(artist)
+    session.commit()
+    response = client.post("/admin/events/new", data=event_form(
+        artist.id, ticket_release_date="2026-09-26", ticket_release_time="10:00"))
+    assert response.status_code == 200
+    event = session.scalar(select(Event))
+    assert event.ticket_release_date == date(2026, 9, 26)
+    assert event.ticket_release_time == time(10)
+    assert "チケット発売" in client.get(f"/events/{event.id}").text
+    assert client.get(f"/events/{event.id}/calendar/google/ticket-release", follow_redirects=False).status_code == 307
+
+    response = client.post(f"/admin/events/{event.id}/edit", data=event_form(
+        artist.id, ticket_release_date="2026-09-27", ticket_release_time=""))
+    assert response.status_code == 200
+    session.refresh(event)
+    assert event.ticket_release_date == date(2026, 9, 27)
+    assert event.ticket_release_time is None
+
+    invalid = client.post(f"/admin/events/{event.id}/edit", data=event_form(
+        artist.id, ticket_release_date="", ticket_release_time="10:00"))
+    assert invalid.status_code == 422
+
+
 def test_artist_create_edit_validation_and_disable_while_in_use(admin_client):
     client, session = admin_client
     invalid = client.post("/admin/artists/new", data={"name": "", "enabled": "on"})

@@ -41,6 +41,17 @@ def google_event_calendar(event_id: int, session: Session = Depends(get_session)
     return RedirectResponse(calendar_service.build_event_calendar_url(event), status_code=307)
 
 
+@router.get("/events/{event_id}/calendar/google/ticket-release", name="google_ticket_release_calendar")
+def google_ticket_release_calendar(event_id: int, session: Session = Depends(get_session)):
+    event = _load_event(session, event_id)
+    if event.status == "cancelled":
+        raise HTTPException(status_code=404, detail="中止されたイベントです")
+    url = calendar_service.build_ticket_release_calendar_url(event)
+    if url is None:
+        raise HTTPException(status_code=404, detail="チケット発売日が登録されていません")
+    return RedirectResponse(url, status_code=307)
+
+
 @router.get("/events/{event_id}/calendar/google/appearance/{appearance_id}", name="google_appearance_calendar")
 def google_appearance_calendar(event_id: int, appearance_id: int, session: Session = Depends(get_session)):
     event = _load_event(session, event_id)

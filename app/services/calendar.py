@@ -157,6 +157,31 @@ def _event_entry(event: Event) -> CalendarEntry:
     )
 
 
+def _ticket_release_entry(event: Event) -> CalendarEntry | None:
+    if event.ticket_release_date is None:
+        return None
+    if event.ticket_release_time is None:
+        return CalendarEntry(
+            uid=f"ticket-release-{event.id}@{ICS_UID_DOMAIN}",
+            title=f"チケット発売｜{event.title}",
+            start=event.ticket_release_date,
+            end=event.ticket_release_date + timedelta(days=1),
+            all_day=True,
+            location="",
+            description=_event_description(event),
+        )
+    start = _join_date_time(event.ticket_release_date, event.ticket_release_time)
+    return CalendarEntry(
+        uid=f"ticket-release-{event.id}@{ICS_UID_DOMAIN}",
+        title=f"チケット発売｜{event.title}",
+        start=start,
+        end=start + timedelta(minutes=30),
+        all_day=False,
+        location="",
+        description=_event_description(event),
+    )
+
+
 def _google_datetime(value: datetime) -> str:
     return value.astimezone(JAPAN).strftime("%Y%m%dT%H%M%S")
 
@@ -258,6 +283,10 @@ class CalendarService:
 
     def build_event_calendar_url(self, event: Event) -> str:
         return _google_url(_event_entry(event))
+
+    def build_ticket_release_calendar_url(self, event: Event) -> str | None:
+        entry = _ticket_release_entry(event)
+        return _google_url(entry) if entry else None
 
     def build_appearance_calendar_url(self, event: Event, appearance: Appearance) -> str | None:
         entry = _entry_for_appearance(event, appearance, benefit=False)

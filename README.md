@@ -53,7 +53,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - 画像解析、OCR、AI解析
 - 管理画面の認証
 - インターネット向けの安全な本番配備
-- Sites本体と公開用JSON API（Snapshotのローカル生成には対応）
+- ChatGPT Sitesへの配置・Private Previewと公開用JSON API（Snapshotのローカル生成と静的閲覧UIには対応）
 
 公開画面のHTMLルートも、現在の構成ではこのFastAPIアプリから配信されます。認証のない管理ルートと同じバックエンド上にあるため、公開HTMLだけを使う場合もアプリ全体をインターネットへ公開しないでください。
 
@@ -143,6 +143,8 @@ APP_BASE_URLはCLIの結果に表示するCandidate画面URLを指定します�
 
 日付と時刻は日本時間（Asia/Tokyo）で扱います。終日予定はOPENとSTARTのどちらも未設定の場合です。終了時刻がない予定はカレンダー形式を作るための仮の長さを使います（イベント2時間、出演30分、特典会60分）。この長さは実際の終了時刻を示すものではありません。
 
+Event管理画面ではチケット発売日と発売時刻を任意で登録できます。発売日はイベント開催日とは別の予定として静的Sitesの今日・今週・今月・日別に表示されます。発売日だけを登録した場合は時刻未定として表示し、Google Calendarには終日予定を作ります。時刻も登録した場合は日本時間の発売開始から30分の予定を作ります。発売時刻だけの登録はできません。中止イベントの発売予定は一覧に出しません。既存DBは`python -m alembic upgrade head`で更新してください。
+
 ## Public Snapshot / Sites
 
 Sitesへ渡す予定データはFastAPIから配信せず、ローカルDBから生成する読み取り専用JSONとして分離します。認証のないFastAPIアプリ自体はインターネットへ公開しないでください。Sites側ではこのJSONまたは架空fixtureを読み込み、表示だけを行います。
@@ -162,9 +164,29 @@ Snapshotには`schema_version`、日本時間の`generated_at`、`timezone`、Ar
 
 公開する項目はDTOで明示しています。ArtistはID、表示名、公式URL、Xユーザー名、EventはID、タイトル、開催日、OPEN/START/END、会場、チケットURL、公式URL、状態、更新日時、Appearance、Source種別とURLです。URL項目は絶対HTTP(S) URLだけを出力し、埋め込み資格情報、ローカルホスト、非公開IP、代表的な秘密情報クエリを含むURLを除外します。状態は`scheduled`、`changed`、`cancelled`に限定して中止予定も残します。架空の動作確認用データは[examples/public_schedule.example.json](examples/public_schedule.example.json)を参照してください。
 
+### 静的Sitesプレビュー
+
+`sites/`にはPublic Snapshotだけを読む読み取り専用UIがあります。FastAPIやSQLiteを起動せず、リポジトリのルートで静的サーバーを起動します。
+
+    python -m http.server 8001 --bind 127.0.0.1
+
+ブラウザーで <http://127.0.0.1:8001/sites/> を開きます。画面は既定で`examples/public_schedule.example.json`と同内容の`sites/public_schedule.example.json`を読み込みます。`sites/`だけでも架空データで確認でき、両ファイルの一致はNodeテストで検証します。このサンプルには複数Artist、時間変更、中止の架空予定を含めています。今日・今週・月間、Artist絞り込み、日別予定、Event詳細を確認できます。狭い画面はブラウザーの開発者ツールで320pxと390pxを指定してください。
+
+生成したJSONをローカルでプレビューするときは、同じ静的サーバーで配信できる場所に置き、`snapshot`クエリでパスを指定します。例えば既定の出力先は次のURLです。
+
+    http://127.0.0.1:8001/sites/?snapshot=../exports/public_schedule.json
+
+この指定は同一サイト内のJSONだけを読み込みます。Sitesへ配置する場合も、公開先で参照可能な場所へSnapshotを手動配置し、そのファイルをSites側の読み込み先へ設定します。`exports/`と運用SnapshotはGit管理対象外です。
+
+Sites UIのユニットテストはNode.js標準のテストランナーで実行できます。
+
+    node --test sites/tests/*.test.mjs
+
+実データへ切り替える場合は、生成した`exports/public_schedule.json`をSitesへ手動で配置・反映します。Snapshotを公開へ反映する前に、内容と元情報URLを確認してください。自動同期はありません。
+
 投稿本文、画像URL、Candidate、解析結果、レビュー情報、重複判定情報、内部IDやローカルパスは出力しません。JSONをSchemaで検証した後に一時ファイルから置換するため、生成または検証に失敗した場合は既存Snapshotを保持します。
 
-更新手順は、ローカル管理画面で予定を更新し、Candidateを確認・承認してから、このCLIでSnapshotを生成・確認し、公開側へ手動で反映する流れです。自動同期、公開API、Sites本体はまだありません。公開するEvent情報と元情報URLを共有する権利・適切性は、公開側へ反映する前に確認してください。
+更新手順は、ローカル管理画面で予定を更新し、Candidateを確認・承認してから、このCLIでSnapshotを生成・確認し、公開側へ手動で反映する流れです。静的UIは用意していますが、ChatGPT Sitesへの配置とPrivate Previewは別途必要です。自動同期と公開APIはありません。公開するEvent情報と元情報URLを共有する権利・適切性は、公開側へ反映する前に確認してください。
 
 ## テストとDBスキーマ確認
 
@@ -204,12 +226,12 @@ SourceとCandidateには投稿本文が保存されます。実投稿、個人�
 - Parserはルールベースです。複雑な投稿や画像からの解析はできず、人による確認が必要です。
 - Xを含む外部サービスから投稿を自動取得しません。
 - SQLite DBは暗号化されません。
-- Public Snapshotを手動で生成できますが、Sitesへの自動同期やSites本体はまだありません。
+- Public Snapshotと静的閲覧UIを用意していますが、ChatGPT Sitesへの配置・Private Preview、自動同期はまだ完了していません。
 - テスト時、依存ライブラリのStarlette TestClientからhttpxを利用する箇所に非推奨警告が出る場合があります。テストの失敗を隠すための警告抑制は設定していません。
 
 ## ロードマップ
 
-今後Sites本体を作る場合も、認証なしの管理バックエンドは公開せず、Public Snapshotの明示済み項目だけを読み取り専用で使います。自動同期と認証付きの管理APIは別工程で設計します。
+ChatGPT Sitesへ配置する場合も、認証なしの管理バックエンドは公開せず、Public Snapshotの明示済み項目だけを読み取り専用で使います。自動同期と認証付きの管理APIは別工程で設計します。
 
 ## ライセンス
 
