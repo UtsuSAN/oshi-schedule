@@ -16,6 +16,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - Artist、Event、出演情報、Sourceの管理
 - 投稿本文の取り込み、Candidateの確認・編集・承認・却下
 - Google Calendarの予定作成リンクとICSファイル
+- Public Snapshotの生成CLI（Sitesへ渡す読み取り専用JSON）
 
 ## 主な機能
 
@@ -25,6 +26,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - 重複取り込みの判定と人によるCandidate確認
 - CLIからの単一投稿、ファイル、JSON配列の手動取り込み
 - Google CalendarリンクとICSの生成。Google APIやOAuthは使用しません
+- Sitesへ手動で渡す、公開項目を限定した読み取り専用JSONスナップショット
 - 架空データを使う日付相対のseed
 
 ## 設計方針
@@ -34,7 +36,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - HTML画面とデータアクセス・業務処理を分け、将来のJSON APIからサービス層を再利用できる構造にしています。
 - デモデータは架空の内容で、開催日をseed実行日の日本時間に合わせて作ります。
 
-## v0.1.0の範囲
+## 現在の実装範囲
 
 対応済み：
 
@@ -43,6 +45,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - 手動の投稿本文ParserとCandidate確認フロー
 - 手動取り込みCLIと二重取り込み防止
 - Google CalendarリンクとICS
+- 公開用JSONスナップショット生成
 
 未対応：
 
@@ -50,7 +53,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - 画像解析、OCR、AI解析
 - 管理画面の認証
 - インターネット向けの安全な本番配備
-- Sites連携、公開用JSON API
+- Sites本体と公開用JSON API（Snapshotのローカル生成には対応）
 
 公開画面のHTMLルートも、現在の構成ではこのFastAPIアプリから配信されます。認証のない管理ルートと同じバックエンド上にあるため、公開HTMLだけを使う場合もアプリ全体をインターネットへ公開しないでください。
 
@@ -140,6 +143,29 @@ APP_BASE_URLはCLIの結果に表示するCandidate画面URLを指定します�
 
 日付と時刻は日本時間（Asia/Tokyo）で扱います。終日予定はOPENとSTARTのどちらも未設定の場合です。終了時刻がない予定はカレンダー形式を作るための仮の長さを使います（イベント2時間、出演30分、特典会60分）。この長さは実際の終了時刻を示すものではありません。
 
+## Public Snapshot / Sites
+
+Sitesへ渡す予定データはFastAPIから配信せず、ローカルDBから生成する読み取り専用JSONとして分離します。認証のないFastAPIアプリ自体はインターネットへ公開しないでください。Sites側ではこのJSONまたは架空fixtureを読み込み、表示だけを行います。
+
+生成方法：
+
+    .\.venv\Scripts\python.exe scripts/export_public_data.py
+
+既定では`exports/public_schedule.json`へpretty JSONをUTF-8で出力します。`exports/`内のファイルは`.gitignore`で除外されます。生成期間は日本時間の今日を基準に過去30日から未来365日までで、必要に応じて変更できます。
+
+    .\.venv\Scripts\python.exe scripts/export_public_data.py --past-days 60 --future-days 180
+    .\.venv\Scripts\python.exe scripts/export_public_data.py --output exports/review.json
+
+`--output`で`exports/`の外を指定した場合、そのファイルはGit除外されるとは限りません。公開へ反映する前に、出力先とJSON内容を利用者自身で確認し、個人予定や共有権のない情報が含まれないことを確かめてください。
+
+Snapshotには`schema_version`、日本時間の`generated_at`、`timezone`、Artist一覧、Event一覧が含まれます。EventにはAppearanceとSource URLをネストします。開催日と各時刻は日本時間の値として扱い、時刻は`HH:MM`、更新日時と生成日時は`+09:00`付きで出力します。Google Calendar日時は開催日と時刻を`Asia/Tokyo`として組み合わせ、ICSはSnapshotから取得せず、ローカルアプリの既存機能を使います。
+
+公開する項目はDTOで明示しています。ArtistはID、表示名、公式URL、Xユーザー名、EventはID、タイトル、開催日、OPEN/START/END、会場、チケットURL、公式URL、状態、更新日時、Appearance、Source種別とURLです。URL項目は絶対HTTP(S) URLだけを出力し、埋め込み資格情報、ローカルホスト、非公開IP、代表的な秘密情報クエリを含むURLを除外します。状態は`scheduled`、`changed`、`cancelled`に限定して中止予定も残します。架空の動作確認用データは[examples/public_schedule.example.json](examples/public_schedule.example.json)を参照してください。
+
+投稿本文、画像URL、Candidate、解析結果、レビュー情報、重複判定情報、内部IDやローカルパスは出力しません。JSONをSchemaで検証した後に一時ファイルから置換するため、生成または検証に失敗した場合は既存Snapshotを保持します。
+
+更新手順は、ローカル管理画面で予定を更新し、Candidateを確認・承認してから、このCLIでSnapshotを生成・確認し、公開側へ手動で反映する流れです。自動同期、公開API、Sites本体はまだありません。公開するEvent情報と元情報URLを共有する権利・適切性は、公開側へ反映する前に確認してください。
+
 ## テストとDBスキーマ確認
 
 開発依存を入れた仮想環境で実行します。
@@ -178,12 +204,12 @@ SourceとCandidateには投稿本文が保存されます。実投稿、個人�
 - Parserはルールベースです。複雑な投稿や画像からの解析はできず、人による確認が必要です。
 - Xを含む外部サービスから投稿を自動取得しません。
 - SQLite DBは暗号化されません。
-- 今後のSites向けJSON APIはまだありません。
+- Public Snapshotを手動で生成できますが、Sitesへの自動同期やSites本体はまだありません。
 - テスト時、依存ライブラリのStarlette TestClientからhttpxを利用する箇所に非推奨警告が出る場合があります。テストの失敗を隠すための警告抑制は設定していません。
 
 ## ロードマップ
 
-次の開発段階では、Sites向けの公開JSON APIと管理側のアクセス制御を別途設計します。APIではEvent、Artist、Appearanceの予定表示に必要な公開フィールドを明示し、Source.source_text、Candidate、内部の重複情報は公開しない方針です。認証なしの管理バックエンドを公開する構成は採用しません。
+今後Sites本体を作る場合も、認証なしの管理バックエンドは公開せず、Public Snapshotの明示済み項目だけを読み取り専用で使います。自動同期と認証付きの管理APIは別工程で設計します。
 
 ## ライセンス
 

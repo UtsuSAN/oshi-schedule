@@ -1,0 +1,79 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-09-25T20:00:00+09:00",
+  "timezone": "Asia/Tokyo",
+  "artists": [
+    {
+      "id": 1,
+      "display_name": "星見ソーダ",
+      "official_url": "https://hoshimi.example.invalid/",
+      "x_username": "hoshimi_soda"
+    },
+    {
+      "id": 2,
+      "display_name": "月虹パレット",
+      "official_url": null,
+      "x_username": null
+    }
+  ],
+  "events": [
+    {
+      "id": 101,
+      "title": "秋空ミニフェス",
+      "event_date": "2026-09-27",
+      "open_at": "17:00",
+      "start_at": "17:30",
+      "end_at": "20:00",
+      "venue_name": "青空ホール",
+      "venue_address": "静岡県架空市1-2",
+      "ticket_url": "https://tickets.example.invalid/autumn",
+      "official_url": "https://events.example.invalid/autumn",
+      "status": "scheduled",
+      "updated_at": "2026-09-25T11:00:00+09:00",
+      "appearances": [
+        {
+          "artist_id": 1,
+          "artist_name": "星見ソーダ",
+          "appearance_start_at": "18:10",
+          "appearance_end_at": "18:30",
+          "benefit_start_at": "18:50",
+          "benefit_end_at": "19:50",
+          "stage_name": "メインステージ",
+          "notes": null
+        },
+        {
+          "artist_id": 2,
+          "artist_name": "月虹パレット",
+          "appearance_start_at": "19:00",
+          "appearance_end_at": "19:20",
+          "benefit_start_at": null,
+          "benefit_end_at": null,
+          "stage_name": "サブステージ",
+          "notes": null
+        }
+      ],
+      "sources": [
+        {
+          "source_type": "official_site",
+          "source_url": "https://events.example.invalid/autumn/info"
+        }
+      ]
+    },
+    {
+      "id": 102,
+      "title": "公演中止のお知らせ（架空）",
+      "event_date": "2026-10-03",
+      "open_at": null,
+      "start_at": null,
+      "end_at": null,
+      "venue_name": "星空シアター",
+      "venue_address": null,
+      "ticket_url": null,
+      "official_url": null,
+      "status": "cancelled",
+      "updated_at": "2026-09-25T12:00:00+09:00",
+      "appearances": [],
+      "sources": []
+    }
+  ]
+}

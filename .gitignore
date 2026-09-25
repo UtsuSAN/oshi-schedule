@@ -17,6 +17,7 @@ data/
 *.sqlite3
 logs/
 *.log
+exports/
 
 # Tool output
 .pytest_cache/
