@@ -102,6 +102,7 @@ class ArtistData:
     name: str
     display_name: str | None
     x_username: str | None
+    x_user_id: str | None
     official_url: str | None
     enabled: bool
 
@@ -147,10 +148,11 @@ def parse_artist(values: Mapping[str, str]) -> ArtistData:
     username = _text(values, "x_username", errors, "Xユーザー名", limit=100)
     if username:
         username = username.lstrip("@")
+    x_user_id = _text(values, "x_user_id", errors, "XユーザーID", limit=100)
     official_url = _url(values, "official_url", errors, "公式URL")
     if errors:
         raise InputError(errors)
-    return ArtistData(name, display_name, username, official_url, values.get("enabled") == "on")
+    return ArtistData(name, display_name, username, x_user_id, official_url, values.get("enabled") == "on")
 
 
 def parse_event(values: Mapping[str, str]) -> EventData:

@@ -20,6 +20,17 @@ APPEARANCE = re.compile(r"出演|LIVE|ライブ", re.IGNORECASE)
 WEEKDAYS = "月火水木金土日"
 GENERIC_TITLE = re.compile(r"こちら|よろしく|詳細|お知らせ|予約|チケット|告知|情報解禁")
 
+CHANGE_PATTERNS = (
+    ("appearance_cancelled", re.compile(r"出演(?:キャンセル|辞退|見合わせ)|出演を(?:取りやめ|見合わせ)")),
+    ("event_cancelled", re.compile(r"(?:開催|公演|イベント)(?:を)?中止|中止のお知らせ")),
+    ("postponed", re.compile(r"(?:開催|公演|イベント)?延期|延期のお知らせ")),
+    ("ticket_changed", re.compile(r"チケット発売変更|発売時間変更|発売開始時間変更|発売日時変更")),
+    ("time_changed", re.compile(r"時間変更|出演時間変更|開場時間変更|開演時間変更|タイムテーブル変更")),
+    ("venue_changed", re.compile(r"会場変更|会場が変更|会場を変更")),
+    ("generic_update", re.compile(r"変更のお知らせ|変更について|変更のご案内|内容変更|変更がございます|変更となりました|変更になります")),
+)
+QUOTED_TITLE = re.compile(r"「([^」\n]{2,300})」|『([^』\n]{2,300})』|“([^”\n]{2,300})”|\"([^\"\n]{2,300})\"")
+
 
 def _clock(value: str) -> time:
     return time.fromisoformat(value)
@@ -146,6 +157,27 @@ def _extract_title(lines: list[str], artist_name: str | None) -> str | None:
     return None
 
 
+def _extract_change(text: str, lines: list[str]) -> tuple[str | None, str | None]:
+    kind = next((name for name, pattern in CHANGE_PATTERNS if pattern.search(text)), None)
+    if kind is None:
+        return None, None
+    pattern = next(pattern for name, pattern in CHANGE_PATTERNS if name == kind)
+    summary_line = next((line for line in lines if pattern.search(line)), None)
+    if summary_line is None:
+        summary_line = next((line for line in lines if any(p.search(line) for _, p in CHANGE_PATTERNS)), text.strip())
+    summary = re.split(r"(?<=[。！？!?])\s*", summary_line.strip(), maxsplit=1)[0]
+    return kind, summary[:500] or None
+
+
+def _extract_quoted_title(text: str) -> str | None:
+    for match in QUOTED_TITLE.finditer(text):
+        value = next((part for part in match.groups() if part is not None), "").strip()
+        if not value or GENERIC_TITLE.search(value) or re.search(r"キャンセル|中止|延期|変更", value):
+            continue
+        return value[:300]
+    return None
+
+
 class RuleBasedParser:
     version = "rule-based-v1"
 
@@ -156,7 +188,8 @@ class RuleBasedParser:
         open_match = OPEN.search(text)
         start_match = START.search(text)
         appearance, benefit = _extract_ranges(lines, warnings)
-        title = _extract_title(lines, context.artist_name)
+        change_kind, change_summary = _extract_change(text, lines)
+        title = _extract_quoted_title(text) or _extract_title(lines, context.artist_name)
         venue = _extract_venue(lines)
         ticket, official = _extract_urls(lines, warnings)
         if title is None:
@@ -175,5 +208,6 @@ class RuleBasedParser:
             appearance_end=appearance[1] if appearance else None,
             benefit_start=benefit[0] if benefit else None,
             benefit_end=benefit[1] if benefit else None,
+            change_kind=change_kind, change_summary=change_summary,
             confidence=confidence, warnings=warnings, parser_version=self.version,
         )

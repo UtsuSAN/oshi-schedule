@@ -221,3 +221,56 @@ def test_raw_html_is_escaped_on_candidate_detail(candidate_client):
     assert response.status_code == 200
     assert "<script>alert" not in response.text
     assert "&lt;script&gt;" in response.text
+
+
+def test_change_candidate_matches_conservatively_and_never_creates_event(candidate_client):
+    client, session = candidate_client
+    artist = Artist(name="架空アーティスト")
+    target = Event(title="しずおか大好きまつり 前夜祭", event_date=date(2026, 10, 2),
+                   appearances=[Appearance(artist=artist)])
+    session.add(target)
+    session.commit()
+
+    response = client.post("/admin/import", data={
+        "raw_text": "【出演キャンセルのお知らせ】\n10月2日（金）\n"
+                    "「しずおか大好きまつり 前夜祭」への出演について、対象アーティストは出演キャンセルとなりました。",
+        "artist_id": str(artist.id),
+    })
+    candidate = session.scalar(select(ImportCandidate))
+    assert candidate.candidate_type == "update"
+    assert candidate.change_kind == "appearance_cancelled"
+    assert candidate.target_event_id == target.id
+    assert "変更候補" in response.text
+    assert "対象Eventを開く" in response.text
+    assert "Event内容は自動変更しません" in response.text
+
+    assert client.post(f"/admin/candidates/{candidate.id}/approve").status_code == 409
+    session.refresh(target)
+    assert target.title == "しずおか大好きまつり 前夜祭"
+    assert session.scalar(select(__import__("sqlalchemy").func.count(Event.id))) == 1
+
+    applied = client.post(f"/admin/candidates/{candidate.id}/applied")
+    assert applied.status_code == 200
+    assert "反映済み" in applied.text
+    assert candidate.review_status == "approved"
+    assert session.scalar(select(__import__("sqlalchemy").func.count(Event.id))) == 1
+
+
+def test_change_candidate_without_strong_event_match_stays_unlinked(candidate_client):
+    client, session = candidate_client
+    artist = Artist(name="架空アーティスト")
+    target = Event(title="まったく異なる企画", event_date=date(2026, 10, 2),
+                   appearances=[Appearance(artist=artist)])
+    session.add(target)
+    session.commit()
+    client.post("/admin/import", data={
+        "raw_text": "【出演キャンセル】\n10月2日\n「しずおか大好きまつり 前夜祭」への出演をキャンセルします。",
+        "artist_id": str(artist.id),
+    })
+    candidate = session.scalar(select(ImportCandidate))
+    assert candidate.candidate_type == "update"
+    assert candidate.target_event_id is None
+    assert "対象イベントを特定できませんでした" in candidate.parse_warnings
+    detail = client.get(f"/admin/candidates/{candidate.id}").text
+    assert "対象イベント候補:" in detail
+    assert "特定できませんでした" in detail

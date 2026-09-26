@@ -8,6 +8,7 @@
   {{ field.input('name', '名前', form.name, error=errors.name, required=true) }}
   {{ field.input('display_name', '表示名', form.display_name, error=errors.display_name) }}
   {{ field.input('x_username', 'Xユーザー名', form.x_username, error=errors.x_username) }}
+  {{ field.input('x_user_id', 'XユーザーID', form.x_user_id, error=errors.x_user_id) }}
   {{ field.input('official_url', '公式URL', form.official_url, type='url', error=errors.official_url) }}
   <label class="checkbox-field"><input type="checkbox" name="enabled" {% if enabled %}checked{% endif %}><span>有効にする</span></label>
   <div class="form-actions"><button class="primary-button" type="submit">{{ '変更を保存' if artist else '登録する' }}</button></div>

@@ -74,3 +74,28 @@ def test_at_username_is_not_a_venue_and_ambiguous_ranges_are_unassigned():
     assert result.venue is None
     assert result.appearance_start is None
     assert any("複数の時間帯" in warning for warning in result.warnings)
+
+
+def test_change_notice_quoted_title_and_cancelled_appearance_regression():
+    result = parse("""【出演キャンセルのお知らせ】
+10月2日（金）
+「しずおか大好きまつり 前夜祭」への出演について、対象アーティストは出演キャンセルとなりました。""")
+    assert result.event_date == date(2026, 10, 2)
+    assert result.title == "しずおか大好きまつり 前夜祭"
+    assert result.change_kind == "appearance_cancelled"
+    assert "出演キャンセル" in result.change_summary
+    assert result.title != "出演キャンセルのお知らせ"
+
+
+def test_change_notice_categories():
+    examples = {
+        "出演辞退": "appearance_cancelled",
+        "開催中止": "event_cancelled",
+        "公演延期": "postponed",
+        "タイムテーブル変更": "time_changed",
+        "会場変更": "venue_changed",
+        "チケット発売変更": "ticket_changed",
+        "変更のお知らせ": "generic_update",
+    }
+    for phrase, expected in examples.items():
+        assert parse(f"{phrase}についてお知らせします").change_kind == expected

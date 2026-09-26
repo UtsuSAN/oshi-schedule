@@ -107,13 +107,15 @@ def _detail(request: Request, session: Session, candidate: ImportCandidate,
             saved: str = "") -> HTMLResponse:
     form = values if values is not None else {key: _display(getattr(candidate, key)) for key in EDIT_FIELDS}
     duplicate = session.get(Event, candidate.duplicate_event_id) if candidate.duplicate_event_id else None
+    target_event = session.get(Event, candidate.target_event_id) if candidate.target_event_id else None
     created_event = session.get(Event, candidate.created_event_id) if candidate.created_event_id else None
     message = {"created": "候補を作成しました", "skipped": "この投稿は取り込み済みです",
                "updated": "候補を保存しました",
-               "approved": "イベントを登録しました", "rejected": "候補を却下しました"}.get(saved)
+               "approved": "イベントを登録しました", "applied": "変更候補を反映済みにしました",
+               "rejected": "候補を却下しました"}.get(saved)
     return _render(request, "admin/candidate_detail.html", {
         "candidate": candidate, "form": form, "errors": errors or {},
-        "artists": ArtistService(session).list(), "duplicate": duplicate,
+        "artists": ArtistService(session).list(), "duplicate": duplicate, "target_event": target_event,
         "created_event": created_event, "message": message,
         "active_admin": "candidates", "as_japan_datetime": as_japan_datetime,
     }, 422 if errors else 200)
@@ -160,3 +162,13 @@ async def candidate_reject(candidate_id: int, request: Request, session: Session
     except ReviewConflict as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     return RedirectResponse(f"/admin/candidates/{candidate_id}?saved=rejected", status_code=303)
+
+
+@router.post("/candidates/{candidate_id}/applied", response_class=HTMLResponse)
+async def candidate_mark_applied(candidate_id: int, request: Request, session: Session = Depends(get_session)):
+    candidate = _candidate_or_404(session, candidate_id)
+    try:
+        CandidateService(session).mark_applied(candidate)
+    except ReviewConflict as exc:
+        raise HTTPException(status_code=409, detail=str(exc)) from exc
+    return RedirectResponse(f"/admin/candidates/{candidate_id}?saved=applied", status_code=303)

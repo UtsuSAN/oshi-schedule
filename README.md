@@ -6,7 +6,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 
 ## 概要
 
-このプロジェクトは、ローカルで予定を閲覧・管理し、手動入力した告知から確認待ち候補を作るMVPです。X APIへの接続や自動取得はせず、Parserの結果を人が確認してからEventへ登録します。
+このプロジェクトは、ローカルで予定を閲覧・管理し、手入力またはユーザーが実行したX公式API取得から確認待ち候補を作るMVPです。Parserの結果を人が確認してからEventへ登録します。
 
 ## 画面・機能紹介
 
@@ -25,6 +25,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - ルールベースParserによる告知本文の補助解析
 - 重複取り込みの判定と人によるCandidate確認
 - CLIからの単一投稿、ファイル、JSON配列の手動取り込み
+- CLIを実行した時だけX公式APIから投稿を手動取得
 - Google CalendarリンクとICSの生成。Google APIやOAuthは使用しません
 - Sitesへ手動で渡す、公開項目を限定した読み取り専用JSONスナップショット
 - 架空データを使う日付相対のseed
@@ -49,7 +50,7 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 
 未対応：
 
-- X API、自動監視、スケジューラー、通知
+- X自動監視、スケジューラー、通知
 - 画像解析、OCR、AI解析
 - 管理画面の認証
 - インターネット向けの安全な本番配備
@@ -133,7 +134,26 @@ Webと共通のImport Serviceを使い、Candidateを作成します。Eventを�
     # JSON配列の複数投稿
     .\.venv\Scripts\python.exe scripts/update_events.py --json examples/import_posts.example.json --dry-run
 
+    # X公式APIから最近の投稿を手動取得
+    .\.venv\Scripts\python.exe scripts/update_events.py --x-account hc_staffACC --limit 10 --dry-run
+
+    # user ID指定、またはX投稿URLから1件取得
+    .\.venv\Scripts\python.exe scripts/update_events.py --x-user-id 123456789 --limit 5 --dry-run
+    .\.venv\Scripts\python.exe scripts/update_events.py --x-url "https://x.com/hc_staffACC/status/123456789" --dry-run
+
 --text、--file、--jsonのいずれか1つを指定します。--source-url、--source-account、--artist-idも指定できます。JSON要素の形式はexamples/import_posts.example.jsonを参照してください。重複した投稿はスキップされます。保存後は管理画面で各Candidateを確認します。
+
+X投稿はexternal_idとアカウント名でも重複判定し、既存投稿があるアカウントでは最新の既取得IDより新しい投稿を取得します。X取得はHTMLスクレイピングやブラウザーCookieを使わず、X公式API v2を呼び出します。`--x-account`は`@`の有無どちらでも指定できます。`--x-user-id`を併記すると、そのIDを使いusernameからIDへの検索を省略します。1回の取得は既定10件、最大20件です。Artistを紐付ける場合は`--artist-id`を追加できます。
+
+X APIは通信した時点で利用量・料金が発生する可能性があります。`--dry-run`はCandidateをDBへ保存しませんが、X投稿を取得する通信は実行します。Tokenなしの手入力・Web利用には影響せず、X取得を要求した時だけTokenを確認します。
+
+出演キャンセル、開催中止、延期、時間・会場・発売変更などの投稿は、既存予定を自動変更しません。変更Candidateとして確認し、対象Eventと元投稿を人が確認してから既存Eventを手動で直します。
+
+X APIを使うには、X Developer Portalで取得したBearer Tokenを`.env`の`X_BEARER_TOKEN`へ設定してください。TokenはCLI引数へ渡さず、ログやGitへ記録しないでください。リポジトリに含まれる`.env.example`のToken欄は空です。Live Test用コマンドは次の通りです。Tokenが設定されている場合だけ手動実行してください。
+
+    .\.venv\Scripts\python.exe scripts/update_events.py --x-account hc_staffACC --limit 5 --dry-run
+
+このツールはCLIをユーザーが実行した時だけXへ接続します。自動監視、スケジューラー、cron、常駐取得はありません。
 
 APP_BASE_URLはCLIの結果に表示するCandidate画面URLを指定します。Uvicornの待受アドレスやアクセス制御を変更する設定ではありません。
 
@@ -187,8 +207,9 @@ Snapshotには`schema_version`、日本時間の`generated_at`、`timezone`、Ar
 | --- | --- | --- |
 | DATABASE_URL | SQLAlchemyのDB接続先。初期状態ではローカルSQLite | sqlite:///./data/oshi_schedule.db |
 | APP_BASE_URL | CLIの結果に表示するCandidate一覧URLのベース | http://127.0.0.1:8000 |
+| X_BEARER_TOKEN | 明示的なX取得CLIで使うX公式API Bearer Token | 未設定 |
 
-.envにAPIキーなどの秘密情報を追加する必要はありません。.envと実DBをGitへ追加しないでください。
+X_BEARER_TOKENはX取得を実行する場合だけ`.env`へ設定してください。TokenはGitへ追加しないでください。.envと実DBもGitへ追加しないでください。
 
 ## セキュリティ
 
@@ -202,7 +223,7 @@ SourceとCandidateには投稿本文が保存されます。実投稿、個人�
 
 - 認証がなく、ローカル利用専用です。
 - Parserはルールベースです。複雑な投稿や画像からの解析はできず、人による確認が必要です。
-- Xを含む外部サービスから投稿を自動取得しません。
+- X公式APIによる取得はCLIからの手動実行だけです。自動監視はしません。
 - SQLite DBは暗号化されません。
 - Public Snapshotを手動で生成できますが、Sitesへの自動同期やSites本体はまだありません。
 - テスト時、依存ライブラリのStarlette TestClientからhttpxを利用する箇所に非推奨警告が出る場合があります。テストの失敗を隠すための警告抑制は設定していません。

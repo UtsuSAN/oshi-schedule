@@ -3,8 +3,18 @@
 {% block title %}候補確認{% endblock %}
 {% block content %}
 <p class="back-link"><a href="/admin/candidates?status={{ candidate.review_status }}">← 候補一覧</a></p>
-<div class="admin-heading"><h1>候補 #{{ candidate.id }}</h1><span class="admin-status">{{ {'pending':'確認待ち','approved':'承認済み','rejected':'却下'}[candidate.review_status] }}</span></div>
+<div class="admin-heading"><h1>{{ '変更候補' if candidate.candidate_type == 'update' else '候補' }} #{{ candidate.id }}</h1><span class="admin-status">{{ {'pending':'確認待ち','approved':'承認済み','rejected':'却下'}[candidate.review_status] }}</span></div>
 <div class="candidate-meta"><span>解析時信頼度 {{ ((candidate.confidence or 0) * 100)|round|int }}%</span><span>{{ candidate.parser_version }}</span><span>{{ {'new':'新規','possible_duplicate':'重複の可能性','unknown':'要確認','update':'更新候補'}[candidate.candidate_type] }}</span></div>
+{% if candidate.candidate_type == 'update' %}
+<section class="candidate-warnings change-candidate">
+  <h2>変更候補</h2>
+  <p><strong>変更種別:</strong> {{ {'appearance_cancelled':'出演キャンセル','event_cancelled':'開催中止','postponed':'延期','time_changed':'時間変更','venue_changed':'会場変更','ticket_changed':'チケット変更','generic_update':'その他の変更'}[candidate.change_kind] if candidate.change_kind else '未分類' }}</p>
+  {% if candidate.change_summary %}<p><strong>変更概要:</strong> {{ candidate.change_summary }}</p>{% endif %}
+  <p><strong>対象イベント候補:</strong> {% if target_event %}{{ target_event.event_date }} · {{ target_event.title }}{% else %}特定できませんでした{% endif %}</p>
+  {% if target_event %}<p><a href="/admin/events/{{ target_event.id }}/edit">対象Eventを開く</a></p>{% endif %}
+  <p>この候補を確認しても、Eventや出演情報は自動変更されません。</p>
+</section>
+{% endif %}
 {% if candidate.parse_warnings %}<section class="candidate-warnings"><h2>解析時の確認事項</h2><ul>{% for warning in candidate.parse_warnings %}<li>{{ warning }}</li>{% endfor %}</ul></section>{% endif %}
 {% if duplicate %}<section class="duplicate-notice"><h2>既存イベントの可能性があります</h2><p>{{ duplicate.event_date }} · {{ duplicate.title }}{% if duplicate.venue_name %} · {{ duplicate.venue_name }}{% endif %}</p><a href="/admin/events/{{ duplicate.id }}/edit">既存Eventを見る</a></section>{% endif %}
 {% if created_event %}<p class="admin-actions"><a class="primary-button" href="/events/{{ created_event.id }}">登録したイベントを見る</a><a class="secondary-button" href="/admin/events/{{ created_event.id }}/edit">イベントを編集</a></p>{% endif %}
@@ -46,7 +56,18 @@
   </fieldset>
   {% if candidate.review_status == 'pending' %}<div class="form-actions"><button class="secondary-button" type="submit">修正を保存</button></div>{% endif %}
 </form>
-{% if candidate.review_status == 'pending' %}
+{% if candidate.review_status == 'pending' and candidate.candidate_type == 'update' %}
+<div class="candidate-decisions">
+  <form method="post" action="/admin/candidates/{{ candidate.id }}/applied">
+    <p>この操作はCandidateを確認済みにするだけで、Event内容は自動変更しません。</p>
+    <button class="primary-button" type="submit">反映済みにする</button>
+  </form>
+  <form method="post" action="/admin/candidates/{{ candidate.id }}/reject">
+    <div class="form-field"><label for="review_note">却下理由（任意）</label><input id="review_note" name="review_note" type="text" maxlength="2000"></div>
+    <button class="secondary-button" type="submit">却下</button>
+  </form>
+</div>
+{% elif candidate.review_status == 'pending' %}
 <div class="candidate-decisions">
   <form method="post" action="/admin/candidates/{{ candidate.id }}/approve">
     {% if duplicate %}<label class="checkbox-field"><input type="checkbox" name="confirm_duplicate" required><span>重複候補を確認し、それでも新規登録する</span></label>{% endif %}

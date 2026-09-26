@@ -207,12 +207,42 @@ class CandidateService:
         return (best, best_score) if best_score >= 70 else (None, best_score)
 
     def _refresh_duplicate(self, candidate: ImportCandidate) -> None:
+        if candidate.change_kind:
+            candidate.candidate_type = "update"
+            event = self.update_target_match(candidate)
+            candidate.target_event_id = event.id if event else None
+            candidate.duplicate_event_id = None
+            candidate.parse_warnings = [warning for warning in candidate.parse_warnings
+                                        if warning != "対象イベントを特定できませんでした"]
+            if event is None:
+                candidate.parse_warnings.append("対象イベントを特定できませんでした")
+            return
+        candidate.target_event_id = None
         event, score = self.duplicate_match(candidate)
         candidate.duplicate_event_id = event.id if event else None
         candidate.candidate_type = "possible_duplicate" if event else (
             "new" if candidate.candidate_title and candidate.candidate_date else "unknown")
         if event:
             logger.info("duplicate detected candidate_id=%s event_id=%s score=%s", candidate.id, event.id, score)
+
+    def update_target_match(self, candidate: ImportCandidate) -> Event | None:
+        """Find a conservative target for a change notice; never changes the Event."""
+        if candidate.candidate_date is None or not candidate.candidate_title or not candidate.artist_id:
+            return None
+        statement = (select(Event).where(Event.event_date == candidate.candidate_date)
+                     .options(selectinload(Event.appearances)))
+        best: Event | None = None
+        best_score = 0.0
+        for event in self.session.scalars(statement):
+            artist_match = any(item.artist_id == candidate.artist_id for item in event.appearances)
+            title_score = _similarity(candidate.candidate_title, event.title)
+            if not artist_match or title_score < 0.72:
+                continue
+            # Artist and date must both match; title similarity ranks remaining candidates.
+            score = title_score
+            if score > best_score:
+                best, best_score = event, score
+        return best
 
     def preview(self, data: ImportInput) -> ImportCandidate:
         """Parse and classify a candidate without writing it to the database."""
@@ -246,6 +276,7 @@ class CandidateService:
             candidate_appearance_end=parsed.appearance_end,
             candidate_benefit_start=parsed.benefit_start, candidate_benefit_end=parsed.benefit_end,
             candidate_stage_name=parsed.stage_name, confidence=parsed.confidence,
+            change_kind=parsed.change_kind, change_summary=parsed.change_summary,
             parser_version=parsed.parser_version or self.parser.version,
             parse_warnings=parsed.warnings, review_status="pending",
         )
@@ -285,6 +316,8 @@ class CandidateService:
         return candidate
 
     def approve(self, candidate: ImportCandidate, *, confirm_duplicate: bool = False) -> Event:
+        if candidate.candidate_type == "update":
+            raise ReviewConflict("変更候補から新しいイベントは登録できません")
         if candidate.review_status != "pending":
             raise ReviewConflict("確認済み候補は再承認できません")
         event_data = parse_event({
@@ -338,6 +371,19 @@ class CandidateService:
             raise
         logger.info("candidate approved id=%s event_id=%s", candidate.id, event.id)
         return event
+
+    def mark_applied(self, candidate: ImportCandidate) -> None:
+        """Mark that the user reviewed/applied a notice without mutating any Event."""
+        if candidate.candidate_type != "update":
+            raise ReviewConflict("変更候補ではありません")
+        if candidate.review_status != "pending":
+            raise ReviewConflict("確認済み候補は再処理できません")
+        candidate.review_status = "approved"
+        try:
+            self.session.commit()
+        except Exception:
+            self.session.rollback()
+            raise
 
     def reject(self, candidate: ImportCandidate, note: str | None = None) -> None:
         if candidate.review_status != "pending":

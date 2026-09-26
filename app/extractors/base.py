@@ -28,6 +28,8 @@ class ParsedEventCandidate:
     benefit_start: time | None = None
     benefit_end: time | None = None
     stage_name: str | None = None
+    change_kind: str | None = None
+    change_summary: str | None = None
     confidence: float = 0.1
     warnings: list[str] = field(default_factory=list)
     parser_version: str = ""

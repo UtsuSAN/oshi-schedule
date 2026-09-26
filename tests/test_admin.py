@@ -57,12 +57,14 @@ def test_artist_create_edit_validation_and_disable_while_in_use(admin_client):
 
     created = client.post("/admin/artists/new", data={
         "name": "架空ユニット", "display_name": "架空アイドル", "x_username": "@fictional",
+        "x_user_id": "123456789",
         "enabled": "on",
     })
     assert created.status_code == 200
     assert "アーティストを登録しました" in created.text
     artist = session.scalar(select(Artist))
     assert artist.x_username == "fictional"
+    assert artist.x_user_id == "123456789"
 
     event = Event(title="出演イベント", event_date=date(2026, 9, 24),
                   appearances=[Appearance(artist=artist)])
@@ -70,11 +72,14 @@ def test_artist_create_edit_validation_and_disable_while_in_use(admin_client):
     session.commit()
     updated = client.post(f"/admin/artists/{artist.id}/edit", data={
         "name": "架空ユニット改", "display_name": "架空アイドル改",
+        "x_username": "fictional_2", "x_user_id": "987654321",
     })
     assert updated.status_code == 200
     assert "アーティストを更新しました" in updated.text
     session.refresh(artist)
     assert artist.name == "架空ユニット改"
+    assert artist.x_username == "fictional_2"
+    assert artist.x_user_id == "987654321"
     assert artist.enabled is False
     assert session.get(Appearance, event.appearances[0].id).artist_id == artist.id
 

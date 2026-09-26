@@ -14,6 +14,7 @@ class ImportCandidate(Base):
     __tablename__ = "import_candidates"
     __table_args__ = (
         CheckConstraint("candidate_type IN ('new', 'update', 'possible_duplicate', 'unknown')", name="candidate_type_valid"),
+        CheckConstraint("change_kind IS NULL OR change_kind IN ('appearance_cancelled', 'event_cancelled', 'postponed', 'time_changed', 'venue_changed', 'ticket_changed', 'generic_update')", name="change_kind_valid"),
         CheckConstraint("review_status IN ('pending', 'approved', 'rejected')", name="review_status_valid"),
         CheckConstraint("confidence IS NULL OR (confidence >= 0 AND confidence <= 1)", name="confidence_range"),
     )
@@ -42,6 +43,9 @@ class ImportCandidate(Base):
     candidate_stage_name: Mapped[str | None] = mapped_column(String(200))
     confidence: Mapped[float | None] = mapped_column(Float)
     candidate_type: Mapped[str] = mapped_column(String(30), nullable=False, default="unknown", server_default="unknown")
+    change_kind: Mapped[str | None] = mapped_column(String(40))
+    change_summary: Mapped[str | None] = mapped_column(String(500))
+    target_event_id: Mapped[int | None] = mapped_column(ForeignKey("events.id", ondelete="SET NULL"), index=True)
     review_status: Mapped[str] = mapped_column(String(20), nullable=False, default="pending", server_default="pending")
     parser_version: Mapped[str] = mapped_column(String(50), nullable=False, default="rule-based-v1", server_default="legacy")
     parse_warnings: Mapped[list[str]] = mapped_column(MutableList.as_mutable(JSON), nullable=False, default=list, server_default="[]")

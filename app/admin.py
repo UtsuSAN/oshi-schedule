@@ -55,7 +55,7 @@ def _model_values(obj: object | None, fields: tuple[str, ...]) -> dict[str, str]
     return {field: _display(getattr(obj, field, None)) for field in fields}
 
 
-ARTIST_FIELDS = ("name", "display_name", "x_username", "official_url")
+ARTIST_FIELDS = ("name", "display_name", "x_username", "x_user_id", "official_url")
 EVENT_FIELDS = ("title", "event_date", "open_at", "start_at", "end_at", "venue_name",
                 "venue_address", "ticket_url", "official_url", "status")
 APPEARANCE_FIELDS = ("artist_id", "appearance_start_at", "appearance_end_at",
