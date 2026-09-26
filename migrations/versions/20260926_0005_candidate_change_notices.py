@@ -1,6 +1,6 @@
 """Store reviewed event change notices as candidates.
 
-Revision ID: 20260926_0004
+Revision ID: 20260926_0005
 Revises: 20260924_0003
 """
 from __future__ import annotations
@@ -8,8 +8,8 @@ from __future__ import annotations
 from alembic import op
 import sqlalchemy as sa
 
-revision = "20260926_0004"
-down_revision = "20260924_0003"
+revision = "20260926_0005"
+down_revision = "20260926_0004"
 branch_labels = None
 depends_on = None
 
@@ -39,3 +39,4 @@ def downgrade() -> None:
         batch.drop_column("target_event_id")
         batch.drop_column("change_summary")
         batch.drop_column("change_kind")
+
