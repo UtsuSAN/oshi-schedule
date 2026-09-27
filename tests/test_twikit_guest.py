@@ -16,6 +16,9 @@ class User:
 
 
 class Guest:
+    def __init__(self):
+        self.tweet_request = None
+
     async def activate(self):
         return None
 
@@ -23,8 +26,8 @@ class Guest:
         assert account == "example_staff"
         return User()
 
-    async def get_user_tweets(self, user_id):
-        assert user_id == "42"
+    async def get_user_tweets(self, user_id, tweet_type, count):
+        self.tweet_request = (user_id, tweet_type, count)
         return [Tweet(), Tweet()]
 
 
@@ -38,9 +41,32 @@ def test_tweet_conversion_and_permalink():
 
 
 def test_guest_collection_limit_and_no_auth():
-    posts = TwikitGuestCollector("@example_staff", client=Guest(), limit=1).collect()
+    guest = Guest()
+    posts = TwikitGuestCollector("@example_staff", client=guest, limit=1).collect()
     assert len(posts) == 1
     assert posts[0].text == "架空の告知"
+    assert guest.tweet_request == ("42", "Tweets", 1)
+
+
+def test_guest_requests_five_tweets():
+    guest = Guest()
+    TwikitGuestCollector("example_staff", client=guest, limit=5).collect()
+    assert guest.tweet_request == ("42", "Tweets", 5)
+
+
+def test_twitter_created_at_format_is_parsed():
+    tweet = Tweet()
+    tweet.created_at = "Sat Sep 27 03:00:00 +0000 2026"
+    post = tweet_to_collected(tweet, "example_staff")
+    assert post.published_at is not None
+    assert (post.published_at.year, post.published_at.month, post.published_at.day) == (2026, 9, 27)
+
+
+def test_created_at_datetime_takes_priority():
+    tweet = Tweet()
+    tweet.created_at = "invalid"
+    tweet.created_at_datetime = datetime(2026, 9, 27, 3, 0, tzinfo=timezone.utc)
+    assert tweet_to_collected(tweet, "example_staff").published_at == tweet.created_at_datetime
 
 
 @pytest.mark.parametrize("limit", [0, -1])

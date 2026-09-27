@@ -23,9 +23,12 @@ def _parse_datetime(value: Any) -> datetime | None:
     if not isinstance(value, str):
         return None
     try:
-        return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        return datetime.strptime(value, "%a %b %d %H:%M:%S %z %Y")
     except ValueError:
-        return None
+        try:
+            return datetime.fromisoformat(value.replace("Z", "+00:00"))
+        except ValueError:
+            return None
 
 
 def tweet_to_collected(tweet: Any, username: str, artist_id: int | None = None) -> CollectedPost:
@@ -34,8 +37,11 @@ def tweet_to_collected(tweet: Any, username: str, artist_id: int | None = None) 
     if not post_id or not text:
         raise TwikitGuestError("投稿情報を読み取れませんでした")
     account = username.lstrip("@").strip()
+    published_at = _parse_datetime(_value(tweet, "created_at_datetime"))
+    if published_at is None:
+        published_at = _parse_datetime(_value(tweet, "created_at"))
     return CollectedPost(text=str(text), source_url=f"https://x.com/{account}/status/{post_id}",
-                         source_account=account, published_at=_parse_datetime(_value(tweet, "created_at")),
+                         source_account=account, published_at=published_at,
                          artist_id=artist_id, external_id=post_id,
                          metadata={"provider": "twikit_guest"})
 
@@ -67,7 +73,7 @@ class TwikitGuestCollector:
         try:
             await client.activate()
             user = await client.get_user_by_screen_name(self.account)
-            tweets = await client.get_user_tweets(user.id)
+            tweets = await client.get_user_tweets(user.id, "Tweets", self.limit)
             return [tweet_to_collected(tweet, self.account, self.artist_id)
                     for tweet in list(tweets)[: self.limit]]
         except TwikitGuestError:
