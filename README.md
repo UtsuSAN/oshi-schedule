@@ -162,6 +162,15 @@ X投稿はexternal_idとアカウント名でも重複判定し、既存投稿�
 
 APP_BASE_URLはCLIの結果に表示するCandidate画面URLを指定します。Uvicornの待受アドレスやアクセス制御を変更する設定ではありません。
 
+## Experimental: Twikit GuestClient PoC
+
+`experimental-x` extraには、ログインなしのTwikit GuestClientを一度だけ試すPoCが含まれます。
+
+    python -m pip install -e ".[dev,experimental-x]"
+    python scripts/poc_twikit_guest.py --account hc_staffACC --limit 5 --parse
+
+これは非公式の取得方式で、X側の仕様変更やGuest API制限により動作しなくなる可能性があります。Cookie、ログイン情報、Token、CAPTCHA回避、Proxy、自動監視は使用しません。取得失敗時に回避策へ進まず終了します。`--parse`もParserのdry-runだけで、Candidate・Event・Artist・Sourceを保存しません。無料手動取り込みが標準運用で、TwikitはExperimental、X公式APIは任意のAdvanced機能です。Live Test未実施の状態では成功と判断しません。
+
 ## Google Calendar / ICS
 
 イベント詳細から、イベント全体、Artistごとの出演、特典会を個別にGoogle Calendarへ追加、またはICSとして取得できます。Google CalendarリンクはGoogleの予定作成画面を開くだけで、自動登録はしません。Google API、OAuth、Google認証情報は使用しません。
