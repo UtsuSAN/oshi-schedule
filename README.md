@@ -169,7 +169,9 @@ APP_BASE_URLはCLIの結果に表示するCandidate画面URLを指定します�
     python -m pip install -e ".[dev,experimental-x]"
     python scripts/poc_twikit_guest.py --account hc_staffACC --limit 5 --parse
 
-これは非公式の取得方式で、X側の仕様変更やGuest API制限により動作しなくなる可能性があります。Cookie、ログイン情報、Token、CAPTCHA回避、Proxy、自動監視は使用しません。取得失敗時に回避策へ進まず終了します。`--parse`もParserのdry-runだけで、Candidate・Event・Artist・Sourceを保存しません。無料手動取り込みが標準運用で、TwikitはExperimental、X公式APIは任意のAdvanced機能です。Live Test未実施の状態では成功と判断しません。
+これは非公式の取得方式で、X側の仕様変更やGuest API制限により動作しなくなる可能性があります。Cookie、ログイン情報、Token、CAPTCHA回避、Proxy、自動監視は使用しません。取得失敗時に回避策へ進まず終了します。`--parse`もParserのdry-runだけで、Candidate・Event・Artist・Sourceを保存しません。無料手動取り込みが標準運用で、TwikitはExperimental、X公式APIは任意のAdvanced機能です。
+
+**2026-09-27 Live Test結果:** `@hc_staffACC` を対象にGuest取得を試しましたが、`Twikit Guest取得に失敗しました。X側仕様変更またはGuest API制限の可能性があります。`（debug: `Exception`）となりました。現時点ではGO条件を満たさないため **NO-GO** とし、Twikit Guestを通常Collectorや`/admin/import`へ統合しません。PoCとoptional dependencyは将来の再試験用に残します。Cookieログイン、Xアカウント認証、Proxy、Cloudflare回避などのworkaroundには進みません。
 
 ## Google Calendar / ICS
 
