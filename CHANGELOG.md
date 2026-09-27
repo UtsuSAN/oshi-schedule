@@ -2,6 +2,21 @@
 
 このファイルは利用者が確認できる変更を記録します。
 
+## Unreleased / Frozen snapshot
+
+### Added
+
+- Manual ImportとCandidate workflow
+- X URL parsingとChange notice parsing
+- X official API optional collector
+- Twikit Guest experimental PoC
+- Ticket release schedule
+- Public SnapshotとStatic Sites UI
+
+### Status
+
+Development frozen on 2026-09-27. No stable free X read path was available that satisfied the project's original missed-announcement prevention goal. See [PROJECT_STATUS.md](PROJECT_STATUS.md).
+
 ## [0.1.0] - 2026-09-25
 
 ### Added
