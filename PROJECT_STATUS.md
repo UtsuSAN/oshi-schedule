@@ -1,6 +1,7 @@
 # Project Status
 
-**Status:** FROZEN  
+**Status:** FROZEN
+
 **Frozen date:** 2026-09-27
 
 ## Original Goal
