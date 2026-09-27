@@ -9,6 +9,7 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session
 
 from app.collectors import CollectedPost, ManualCollector
+from app.collectors.x_urls import find_x_status_url, parse_x_status_url
 from app.db import get_session
 from app.models import Event, ImportCandidate
 from app.services.admin import ArtistService, InputError
@@ -50,10 +51,12 @@ EDIT_FIELDS = (
 
 
 def _import_form(request: Request, session: Session, values: dict[str, str] | None = None,
-                 errors: dict[str, str] | None = None) -> HTMLResponse:
+                 errors: dict[str, str] | None = None, preview=None,
+                 duplicate_candidate: ImportCandidate | None = None) -> HTMLResponse:
     return _render(request, "admin/import.html", {
         "form": values or {}, "errors": errors or {}, "artists": ArtistService(session).list(),
-        "active_admin": "candidates",
+        "active_admin": "candidates", "preview": preview,
+        "duplicate_candidate": duplicate_candidate,
     }, 422 if errors else 200)
 
 
@@ -66,14 +69,30 @@ def import_page(request: Request, session: Session = Depends(get_session)):
 async def import_post(request: Request, session: Session = Depends(get_session)):
     values = await _values(request)
     try:
+        # A URL can be entered separately or pasted with the post body. Parse locally only.
+        source_url = (values.get("source_url") or "").strip() or find_x_status_url(values.get("raw_text"))
+        if source_url:
+            values["source_url"] = source_url
+            parsed_url = parse_x_status_url(source_url)
+            if parsed_url:
+                if not (values.get("source_account") or "").strip():
+                    values["source_account"] = parsed_url[0]
         parsed = parse_import(values)
+        x_url = parse_x_status_url(parsed.source_url)
         post = ManualCollector(CollectedPost(
             text=parsed.raw_text, source_url=parsed.source_url,
             source_account=parsed.source_account,
             published_at=parsed.published_at.replace(tzinfo=timezone.utc) if parsed.published_at else None,
-            artist_id=parsed.artist_id,
+            artist_id=parsed.artist_id, external_id=x_url[1] if x_url else None,
         )).collect()[0]
-        result = ImportService(session).import_post(post)
+        importer = ImportService(session)
+        if values.get("action") == "preview":
+            result = importer.import_post(post, dry_run=True)
+            if result.status is ImportStatus.SKIPPED:
+                duplicate = session.get(ImportCandidate, result.existing_candidate_id)
+                return _import_form(request, session, values, duplicate_candidate=duplicate)
+            return _import_form(request, session, values, preview=result.candidate)
+        result = importer.import_post(post)
     except InputError as exc:
         return _import_form(request, session, values, exc.errors)
     except ValueError as exc:

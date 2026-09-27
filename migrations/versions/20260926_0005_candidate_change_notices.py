@@ -1,7 +1,7 @@
 """Store reviewed event change notices as candidates.
 
 Revision ID: 20260926_0005
-Revises: 20260924_0003
+Revises: 20260926_0004
 """
 from __future__ import annotations
 

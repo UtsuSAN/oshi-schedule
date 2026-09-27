@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.db import Base, get_session
+from app.collectors.x_urls import find_x_status_url, parse_x_status_url
 from app.main import app
 from app.models import Appearance, Artist, Event, ImportCandidate, Source
 from app.services.candidates import CandidateService
@@ -274,3 +275,100 @@ def test_change_candidate_without_strong_event_match_stays_unlinked(candidate_cl
     detail = client.get(f"/admin/candidates/{candidate.id}").text
     assert "対象イベント候補:" in detail
     assert "特定できませんでした" in detail
+
+
+@pytest.mark.parametrize(("url", "expected"), [
+    ("https://x.com/example_staff/status/123456789", ("example_staff", "123456789")),
+    ("https://twitter.com/example_staff/status/123456789?s=20", ("example_staff", "123456789")),
+])
+def test_x_status_url_parsing_is_local(url, expected):
+    assert parse_x_status_url(url) == expected
+
+
+def test_x_status_url_can_be_found_in_pasted_text_without_modifying_body():
+    original = "告知本文です\nhttps://x.com/example_staff/status/123456789)."
+    found = find_x_status_url(original)
+    assert found == "https://x.com/example_staff/status/123456789"
+    assert parse_x_status_url(found) == ("example_staff", "123456789")
+
+
+def test_manual_import_parses_pasted_x_url_into_update_candidate_without_http(candidate_client, monkeypatch):
+    from app.collectors.x_api import XApiCollector
+
+    client, session = candidate_client
+    artist = Artist(name="架空アーティスト")
+    target = Event(title="しずおか大好きまつり 前夜祭", event_date=date(2026, 10, 2),
+                   appearances=[Appearance(artist=artist)])
+    session.add(target)
+    session.commit()
+    calls = []
+
+    def forbidden_request(*_args, **_kwargs):
+        calls.append("http")
+        raise AssertionError("manual import must not contact X")
+
+    monkeypatch.setattr(XApiCollector, "_request_json", forbidden_request)
+    raw_text = (
+        "【出演キャンセルのお知らせ】\n10月2日（金）\n"
+        "「しずおか大好きまつり 前夜祭」への出演について、対象アーティストは出演キャンセルとなりました。\n"
+        "https://x.com/example_staff/status/123456789"
+    )
+    response = client.post("/admin/import", data={"raw_text": raw_text, "artist_id": str(artist.id)},
+                           follow_redirects=False)
+    candidate = session.scalar(select(ImportCandidate))
+
+    assert response.status_code == 303
+    assert candidate.raw_text == raw_text
+    assert candidate.source_url == "https://x.com/example_staff/status/123456789"
+    assert candidate.source_account == "example_staff"
+    assert candidate.external_id == "123456789"
+    assert candidate.candidate_type == "update"
+    assert candidate.change_kind == "appearance_cancelled"
+    assert candidate.candidate_date == date(2026, 10, 2)
+    assert candidate.candidate_title == "しずおか大好きまつり 前夜祭"
+    assert candidate.artist_id == artist.id
+    assert calls == []
+
+
+def test_import_preview_does_not_save_and_can_then_be_saved(candidate_client):
+    client, session = candidate_client
+    values = {"raw_text": sample_post(), "source_url": "https://twitter.com/example_staff/status/123456789"}
+    preview = client.post("/admin/import", data={**values, "action": "preview"})
+    assert preview.status_code == 200
+    assert "解析結果（未保存）" in preview.text
+    assert "Candidate Type" in preview.text
+    assert "この内容でCandidate作成" in preview.text
+    assert session.scalar(select(ImportCandidate)) is None
+
+    saved = client.post("/admin/import", data={**values, "action": "save"}, follow_redirects=False)
+    candidate = session.scalar(select(ImportCandidate))
+    assert saved.status_code == 303
+    assert candidate is not None
+    assert candidate.external_id == "123456789"
+    assert candidate.source_account == "example_staff"
+
+
+def test_same_x_url_manual_import_is_idempotent(candidate_client):
+    client, session = candidate_client
+    form = {"raw_text": "同じ投稿本文", "source_url": "https://x.com/example_staff/status/123456789"}
+    first = client.post("/admin/import", data=form, follow_redirects=False)
+    second = client.post("/admin/import", data={**form, "raw_text": "修正された本文"}, follow_redirects=False)
+    assert first.status_code == 303
+    assert second.status_code == 303
+    assert "saved=skipped" in second.headers["location"]
+    assert session.scalar(select(__import__("sqlalchemy").func.count(ImportCandidate.id))) == 1
+
+
+def test_manual_import_screen_has_mobile_paste_and_preview_controls(candidate_client):
+    client, _ = candidate_client
+    response = client.get("/admin/import")
+    assert response.status_code == 200
+    assert 'name="raw_text" rows="12"' in response.text
+    assert "無料・手動取り込み" in response.text
+    assert "外部通信なし" in response.text
+    assert "解析だけ" in response.text
+    assert "Candidateとして保存" in response.text
+    assert '<meta name="viewport" content="width=device-width, initial-scale=1">' in response.text
+    css = client.get("/static/admin.css").text
+    assert "@media (max-width: 520px)" in css
+    assert ".form-field textarea[name=\"raw_text\"] { min-height: 280px;" in css

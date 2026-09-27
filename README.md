@@ -1,5 +1,7 @@
 # 推し活スケジュール
 
+> **X APIなしでも無料で利用できます。** 標準の使い方は、Xや公式サイトの告知文をコピーして`/admin/import`へ貼り付ける手動取り込みです。本文の解析、Candidateの確認、承認まで外部API通信なしで行えます。X Developer登録やBearer Tokenは必要ありません。
+
 SNSなどに散らばったライブ・イベント告知を、確認可能なCandidateフローを通して予定表へ整理するセルフホスト型Webアプリです。告知本文を手動で取り込み、内容を確認・修正してから予定へ反映します。
 
 > **重要：管理画面に認証機能はありません。FastAPIバックエンドを現状のままインターネットへ公開しないでください。** 投稿本文や予定を含むローカルデータを扱います。現バージョンは自分のPC上での利用を前提としています。
@@ -24,8 +26,9 @@ SNSなどに散らばったライブ・イベント告知を、確認可能なCa
 - EventとArtistごとのAppearanceを分けた管理
 - ルールベースParserによる告知本文の補助解析
 - 重複取り込みの判定と人によるCandidate確認
+- Web画面からの無料手動取り込み（外部API通信なし）
 - CLIからの単一投稿、ファイル、JSON配列の手動取り込み
-- CLIを実行した時だけX公式APIから投稿を手動取得
+- オプションとしてCLIからX公式APIを使った投稿の手動取得
 - Google CalendarリンクとICSの生成。Google APIやOAuthは使用しません
 - Sitesへ手動で渡す、公開項目を限定した読み取り専用JSONスナップショット
 - 架空データを使う日付相対のseed
@@ -114,11 +117,15 @@ PowerShellの実行ポリシーで仮想環境の有効化が拒否された場�
 
 ## 投稿取り込み
 
-/admin/importで本文を貼り付けると、Parserの抽出結果がCandidateとして保存されます。候補画面で元本文と抽出結果を確認し、必要な項目を修正してください。承認するとEvent、Appearance、Sourceが作られます。重複候補を新規登録するときは、既存Eventを確認したうえで明示的に承認します。
+通常は無料の手動取り込みを使います。Xや公式サイトを開いて告知文をコピーし、`/admin/import`へ貼り付けてください。投稿URLを本文に含めるか別欄へ入力すると、X/Twitterのアカウント名と投稿IDをURLから補助取得します。この解析はURL文字列を読むだけで、Xへ接続しません。本文とURLは変更せずCandidateに保存します。
+
+まず「解析だけ」でParserの結果を確認できます。この操作ではDBへ保存しません。「Candidateとして保存」を押すと確認待ち候補が作られます。候補画面で元本文と抽出結果を確認・修正してから承認してください。承認するとEvent、Appearance、Sourceが作られます。重複候補は既存予定を確認したうえで明示的に承認します。
 
 Parserは日付、OPEN/START、出演・特典会の時間帯、会場、用途が分かるURLなどを補助的に抽出します。曖昧なタイトル、複数時間帯、年の省略、用途不明URL、画像内情報は正しく判定できない場合があります。解析警告の有無にかかわらず、承認前に人が内容を確認してください。
 
 ## CLI
+
+CLIでも`--text`、`--file`、`--json`による手動取り込みを利用できます。これらはX API Token不要で、外部APIへ接続しません。X公式API取得は後述の任意機能です。
 
 Webと共通のImport Serviceを使い、Candidateを作成します。Eventを直接登録しません。
 
@@ -134,6 +141,14 @@ Webと共通のImport Serviceを使い、Candidateを作成します。Eventを�
     # JSON配列の複数投稿
     .\.venv\Scripts\python.exe scripts/update_events.py --json examples/import_posts.example.json --dry-run
 
+--text、--file、--jsonのいずれか1つを指定します。--source-url、--source-account、--artist-idも指定できます。JSON要素の形式はexamples/import_posts.example.jsonを参照してください。重複した投稿はスキップされます。保存後は管理画面で各Candidateを確認します。
+
+出演キャンセル、開催中止、延期、時間・会場・発売変更などの投稿は、既存予定を自動変更しません。変更Candidateとして確認し、対象Eventと元投稿を人が確認してから既存Eventを手動で直します。
+
+### Optional: X公式API取得
+
+X公式API取得は任意の上級機能です。無料の手動取り込みには必要ありません。利用する場合は、X Developer Portalで取得したBearer Tokenを`.env`の`X_BEARER_TOKEN`へ設定してください。TokenはCLI引数へ渡さず、ログやGitへ記録しないでください。リポジトリに含まれる`.env.example`のToken欄は空です。利用料金やクレジット条件はX Developer Consoleで最新情報を確認してください。`--dry-run`はCandidateをDBへ保存しませんが、Xへの取得通信は実行します。Live Test用コマンドは次の通りです。Tokenが設定されている場合だけ手動実行してください。
+
     # X公式APIから最近の投稿を手動取得
     .\.venv\Scripts\python.exe scripts/update_events.py --x-account hc_staffACC --limit 10 --dry-run
 
@@ -141,17 +156,7 @@ Webと共通のImport Serviceを使い、Candidateを作成します。Eventを�
     .\.venv\Scripts\python.exe scripts/update_events.py --x-user-id 123456789 --limit 5 --dry-run
     .\.venv\Scripts\python.exe scripts/update_events.py --x-url "https://x.com/hc_staffACC/status/123456789" --dry-run
 
---text、--file、--jsonのいずれか1つを指定します。--source-url、--source-account、--artist-idも指定できます。JSON要素の形式はexamples/import_posts.example.jsonを参照してください。重複した投稿はスキップされます。保存後は管理画面で各Candidateを確認します。
-
 X投稿はexternal_idとアカウント名でも重複判定し、既存投稿があるアカウントでは最新の既取得IDより新しい投稿を取得します。X取得はHTMLスクレイピングやブラウザーCookieを使わず、X公式API v2を呼び出します。`--x-account`は`@`の有無どちらでも指定できます。`--x-user-id`を併記すると、そのIDを使いusernameからIDへの検索を省略します。1回の取得は既定10件、最大20件です。Artistを紐付ける場合は`--artist-id`を追加できます。
-
-X APIは通信した時点で利用量・料金が発生する可能性があります。`--dry-run`はCandidateをDBへ保存しませんが、X投稿を取得する通信は実行します。Tokenなしの手入力・Web利用には影響せず、X取得を要求した時だけTokenを確認します。
-
-出演キャンセル、開催中止、延期、時間・会場・発売変更などの投稿は、既存予定を自動変更しません。変更Candidateとして確認し、対象Eventと元投稿を人が確認してから既存Eventを手動で直します。
-
-X APIを使うには、X Developer Portalで取得したBearer Tokenを`.env`の`X_BEARER_TOKEN`へ設定してください。TokenはCLI引数へ渡さず、ログやGitへ記録しないでください。リポジトリに含まれる`.env.example`のToken欄は空です。Live Test用コマンドは次の通りです。Tokenが設定されている場合だけ手動実行してください。
-
-    .\.venv\Scripts\python.exe scripts/update_events.py --x-account hc_staffACC --limit 5 --dry-run
 
 このツールはCLIをユーザーが実行した時だけXへ接続します。自動監視、スケジューラー、cron、常駐取得はありません。
 

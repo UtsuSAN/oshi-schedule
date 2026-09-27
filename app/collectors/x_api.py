@@ -102,6 +102,8 @@ class XApiCollector:
                 raise XApiError("X APIへ接続できませんでした") from None
             if response.status_code == 401:
                 raise XApiError("認証情報を確認してください")
+            if response.status_code == 402:
+                raise XApiError("X APIのクレジット残高または請求設定を確認してください")
             if response.status_code == 403:
                 raise XApiError("X APIのアクセス権・プランを確認してください")
             if response.status_code == 404:

@@ -94,6 +94,7 @@ def test_collector_interface_supports_one_shot_collection():
 
 @pytest.mark.parametrize(("status", "message"), [
     (401, "認証情報を確認してください"),
+    (402, "X APIのクレジット残高または請求設定を確認してください"),
     (403, "X APIのアクセス権・プランを確認してください"),
     (404, "アカウントまたは投稿が見つかりません"),
     (429, "X APIの利用制限に達しました"),

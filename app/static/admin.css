@@ -30,6 +30,24 @@
 .admin-status.inactive, .past-label { color: var(--muted); }
 .upcoming-label, .past-label { margin-left: 8px; font-size: .8rem; }
 .admin-form { max-width: 720px; }
+.manual-import-intro { max-width: 720px; margin: 0 0 22px; border: 1px solid var(--line); border-radius: 10px; padding: 16px; background: var(--surface); }
+.manual-import-intro p { margin: 8px 0 0; line-height: 1.55; }
+.no-network-badge { display: inline-flex; min-height: 30px; align-items: center; border-radius: 999px; padding: 3px 12px; background: #e6f4ed; color: #195d3b; font-weight: 750; }
+.import-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+.import-actions button { min-height: 50px; font: inherit; font-weight: 750; }
+.import-actions .primary-button { flex: 1 1 220px; }
+.import-actions .secondary-button { flex: 1 1 140px; }
+.import-preview { max-width: 720px; margin-top: 30px; border: 1px solid var(--line); border-radius: 10px; padding: 18px; background: var(--surface); }
+.import-preview h2 { margin: 0 0 16px; font-size: 1.25rem; }
+.import-preview-grid { display: grid; grid-template-columns: minmax(110px, .7fr) minmax(0, 1.3fr); gap: 10px 16px; margin: 0; }
+.import-preview-grid dt { color: var(--muted); font-weight: 650; }
+.import-preview-grid dd { min-width: 0; margin: 0; overflow-wrap: anywhere; }
+.preview-save-form { margin-top: 20px; }
+.preview-save-form .primary-button { min-height: 50px; font: inherit; font-weight: 750; }
+.optional-x-import { max-width: 720px; margin-top: 28px; border-top: 1px solid var(--line); padding-top: 18px; }
+.optional-x-import summary { min-height: 44px; cursor: pointer; font-weight: 750; }
+.optional-x-import p { line-height: 1.55; }
+.form-field textarea[name="raw_text"] { min-height: 280px; line-height: 1.55; }
 .admin-form fieldset { margin: 0 0 24px; padding: 0; border: 0; }
 .admin-form legend { width: 100%; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 7px; font-size: 1.2rem; font-weight: 750; }
 .form-field { min-width: 0; margin-bottom: 16px; }
@@ -85,4 +103,9 @@
   .candidate-compare { grid-template-columns: 1fr; gap: 22px; }
   .candidate-filters { justify-content: space-between; gap: 2px; }
   .candidate-filters a { font-size: .88rem; }
+  .manual-import-intro, .import-preview { padding: 14px; }
+  .import-preview-grid { grid-template-columns: 1fr; gap: 3px; }
+  .import-preview-grid dd { margin: 0 0 10px; }
+  .import-actions { display: grid; grid-template-columns: 1fr; }
+  .import-actions button { width: 100%; min-height: 52px; }
 }
